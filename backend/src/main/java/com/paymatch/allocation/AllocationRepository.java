@@ -15,10 +15,10 @@ public interface AllocationRepository extends JpaRepository<Allocation, Long> {
     @Query("select coalesce(sum(a.amount), 0) from Allocation a where a.invoice.id = :invoiceId")
     BigDecimal sumForInvoice(@Param("invoiceId") Long invoiceId);
 
-    @EntityGraph(attributePaths = {"invoice", "invoice.counterparty", "createdBy"})
+    @EntityGraph(attributePaths = {"invoice", "invoice.counterparty", "createdBy", "transaction"})
     List<Allocation> findByTransactionIdOrderById(Long transactionId);
 
-    @EntityGraph(attributePaths = "invoice")
+    @EntityGraph(attributePaths = {"invoice", "createdBy"})
     List<Allocation> findByTransactionIdIn(Collection<Long> transactionIds);
 
     @EntityGraph(attributePaths = {"invoice", "invoice.counterparty", "createdBy", "transaction"})

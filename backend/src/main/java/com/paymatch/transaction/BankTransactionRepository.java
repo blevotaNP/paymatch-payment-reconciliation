@@ -14,6 +14,7 @@ import org.springframework.data.repository.query.Param;
 import jakarta.persistence.LockModeType;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
@@ -39,6 +40,15 @@ public interface BankTransactionRepository extends JpaRepository<BankTransaction
     Optional<BankTransaction> findForDecision(@Param("id") Long id);
 
     long countByMatchStatus(MatchStatus status);
+
+    @Query("""
+            select t from BankTransaction t join fetch t.statementImport
+            where t.amount > 0
+              and (cast(:from as localdate) is null or t.bookingDate >= :from)
+              and (cast(:to as localdate) is null or t.bookingDate <= :to)
+            order by t.bookingDate, t.id
+            """)
+    List<BankTransaction> findIncomingBetween(@Param("from") LocalDate from, @Param("to") LocalDate to);
 
     long countByMatchStatusAndAmountGreaterThan(MatchStatus status, BigDecimal amount);
 
