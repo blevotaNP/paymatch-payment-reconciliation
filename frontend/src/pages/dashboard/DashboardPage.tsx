@@ -7,7 +7,7 @@ import { ErrorState } from '../../components/ErrorState'
 import { HistoryTimeline } from '../../components/HistoryTimeline'
 import { MoneyText } from '../../components/MoneyText'
 import { PageHeader } from '../../components/PageHeader'
-import { formatMoney, formatMoneyCompact, toChartNumber } from '../../lib/money'
+import { formatAxisAmount, formatMoney, formatMoneyCompact, toChartNumber } from '../../lib/money'
 
 const MONTH_NAMES = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
 
@@ -82,7 +82,7 @@ export function DashboardPage() {
                 { name: 'Received', color: 'teal.6' },
               ]}
               valueFormatter={formatMoneyCompact}
-              yAxisProps={{ width: 84 }}
+              yAxisProps={{ width: 64, tickFormatter: formatAxisAmount }}
               withLegend
               legendProps={{ verticalAlign: 'top', height: 36 }}
               gridAxis="y"

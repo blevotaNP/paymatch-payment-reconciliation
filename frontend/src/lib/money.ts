@@ -70,3 +70,10 @@ export function formatMoneyCompact(value: number): string {
   if (Math.abs(value) >= 1_000) return `${(value / 1_000).toFixed(1).replace('.', ',')} tys. zł`
   return `${Math.round(value)} zł`
 }
+
+/** Short labels for chart axes: "80 tys.", "1,2 mln". */
+export function formatAxisAmount(value: number): string {
+  if (Math.abs(value) >= 1_000_000) return `${(value / 1_000_000).toFixed(1).replace('.', ',')} mln`
+  if (Math.abs(value) >= 1_000) return `${Math.round(value / 1_000)} tys.`
+  return String(Math.round(value))
+}
