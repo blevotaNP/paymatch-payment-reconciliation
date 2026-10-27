@@ -1,0 +1,6 @@
+# the backend image is built from the repository root; it only needs backend/ and samples/
+.git
+.idea
+frontend
+backend/target
+**/*.log
