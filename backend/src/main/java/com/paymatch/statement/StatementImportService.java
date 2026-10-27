@@ -1,0 +1,172 @@
+package com.paymatch.statement;
+
+import com.paymatch.common.error.BadRequestException;
+import com.paymatch.common.error.ConflictException;
+import com.paymatch.common.error.NotFoundException;
+import com.paymatch.common.parsing.TextDecoder;
+import com.paymatch.statement.StatementImportResponse.DuplicateRow;
+import com.paymatch.statement.parser.ParsedStatement;
+import com.paymatch.statement.parser.ParsedTransaction;
+import com.paymatch.statement.parser.StatementParser;
+import com.paymatch.transaction.BankTransaction;
+import com.paymatch.transaction.BankTransactionRepository;
+import com.paymatch.user.AppUser;
+import com.paymatch.user.CurrentUser;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.time.Clock;
+import java.time.Instant;
+import java.time.LocalDate;
+import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
+
+@Service
+public class StatementImportService {
+
+    private static final Logger log = LoggerFactory.getLogger(StatementImportService.class);
+    private static final int MAX_REPORTED_DUPLICATES = 200;
+    private static final DateTimeFormatter WARSAW_DATE_TIME =
+            DateTimeFormatter.ofPattern("dd.MM.yyyy HH:mm").withZone(ZoneId.of("Europe/Warsaw"));
+
+    private final StatementParserRegistry parserRegistry;
+    private final StatementImportRepository importRepository;
+    private final BankTransactionRepository transactionRepository;
+    private final CurrentUser currentUser;
+    private final Clock clock;
+
+    public StatementImportService(StatementParserRegistry parserRegistry, StatementImportRepository importRepository,
+                                  BankTransactionRepository transactionRepository, CurrentUser currentUser, Clock clock) {
+        this.parserRegistry = parserRegistry;
+        this.importRepository = importRepository;
+        this.transactionRepository = transactionRepository;
+        this.currentUser = currentUser;
+        this.clock = clock;
+    }
+
+    /**
+     * Parses the file, drops transactions that are already stored, and saves the rest in one transaction.
+     * Two parallel uploads of the same file are stopped by the unique index on dedup_key (one of them fails with 409).
+     */
+    @Transactional
+    public StatementImportResponse importFile(String fileName, byte[] content, BankFormat requestedFormat) {
+        if (content.length == 0) {
+            throw new BadRequestException("File is empty");
+        }
+        TextDecoder.DecodedText decoded = TextDecoder.decode(content);
+        StatementParser parser = requestedFormat != null
+                ? parserRegistry.get(requestedFormat)
+                : parserRegistry.detect(decoded.text()).orElseThrow(() -> new BadRequestException(
+                        "Could not recognise the bank format. Choose the bank manually and try again."));
+
+        ParsedStatement parsed = parser.parse(decoded.text());
+        if (parsed.getTransactions().isEmpty() && parsed.getSkipped().isEmpty()) {
+            throw new BadRequestException("No transactions found in the file");
+        }
+
+        String fileHash = DedupKeyGenerator.sha256(content);
+        List<String> warnings = new ArrayList<>(parsed.getWarnings());
+        importRepository.findFirstByFileSha256AndStatusOrderByImportedAtDesc(fileHash, ImportStatus.ACTIVE)
+                .ifPresent(previous -> warnings.add("This exact file was already imported on "
+                        + WARSAW_DATE_TIME.format(previous.getImportedAt()) + " by " + previous.getImportedBy().getDisplayName()));
+
+        AppUser user = currentUser.get();
+        StatementImport statementImport = importRepository.save(
+                new StatementImport(fileName, parser.format(), fileHash, decoded.charset().name(), user));
+
+        List<ParsedTransaction> transactions = parsed.getTransactions();
+        List<String> keys = DedupKeyGenerator.generate(parser.format(), parsed.getAccountIban(), transactions);
+        Set<String> existing = keys.isEmpty() ? Set.of() : transactionRepository.findExistingDedupKeys(keys);
+        Set<String> seenInFile = new HashSet<>();
+
+        List<BankTransaction> toSave = new ArrayList<>();
+        List<DuplicateRow> duplicates = new ArrayList<>();
+        int duplicateCount = 0;
+        for (int i = 0; i < transactions.size(); i++) {
+            ParsedTransaction tx = transactions.get(i);
+            String key = keys.get(i);
+            if (existing.contains(key) || !seenInFile.add(key)) {
+                duplicateCount++;
+                if (duplicates.size() < MAX_REPORTED_DUPLICATES) {
+                    duplicates.add(new DuplicateRow(tx.lineNumber(), tx.bookingDate(), tx.amount().toPlainString(), tx.title()));
+                }
+                continue;
+            }
+            toSave.add(toEntity(statementImport, parsed.getAccountIban(), tx, key));
+        }
+        transactionRepository.saveAll(toSave);
+
+        LocalDate periodFrom = parsed.getPeriodFrom() != null ? parsed.getPeriodFrom() : minDate(transactions);
+        LocalDate periodTo = parsed.getPeriodTo() != null ? parsed.getPeriodTo() : maxDate(transactions);
+        statementImport.recordResult(parsed.getAccountIban(), periodFrom, periodTo, parsed.getTotalRows(),
+                toSave.size(), duplicateCount, parsed.getSkipped(), warnings);
+
+        log.info("Imported {} ({}): {} new, {} duplicates, {} skipped", fileName, parser.format(),
+                toSave.size(), duplicateCount, parsed.getSkipped().size());
+        return StatementImportResponse.from(statementImport, duplicates);
+    }
+
+    @Transactional(readOnly = true)
+    public Page<StatementImportResponse> list(Pageable pageable) {
+        return importRepository.findAll(pageable).map(StatementImportResponse::from);
+    }
+
+    @Transactional(readOnly = true)
+    public StatementImportResponse get(Long id) {
+        return StatementImportResponse.from(findImport(id));
+    }
+
+    /** Removes all transactions of the import. The import record itself stays, marked as undone, for history. */
+    @Transactional
+    public StatementImportResponse undo(Long id) {
+        StatementImport statementImport = findImport(id);
+        if (statementImport.getStatus() == ImportStatus.UNDONE) {
+            throw new ConflictException("Import was already undone");
+        }
+        int deleted = transactionRepository.deleteByImportId(id);
+        statementImport.markUndone(currentUser.get(), Instant.now(clock));
+        log.info("Undid import {} ({} transactions removed)", id, deleted);
+        return StatementImportResponse.from(statementImport);
+    }
+
+    private StatementImport findImport(Long id) {
+        return importRepository.findWithUsersById(id).orElseThrow(() -> NotFoundException.of("Import", id));
+    }
+
+    private static BankTransaction toEntity(StatementImport statementImport, String accountIban, ParsedTransaction tx, String key) {
+        return new BankTransaction(
+                statementImport,
+                accountIban,
+                tx.bookingDate(),
+                tx.valueDate(),
+                tx.amount(),
+                tx.currency(),
+                truncate(tx.counterpartyName(), 255),
+                truncate(tx.counterpartyAccount(), 34),
+                truncate(tx.title(), 1000),
+                truncate(tx.bankReference(), 100),
+                key,
+                tx.rawData());
+    }
+
+    private static String truncate(String value, int maxLength) {
+        return value == null || value.length() <= maxLength ? value : value.substring(0, maxLength);
+    }
+
+    private static LocalDate minDate(List<ParsedTransaction> transactions) {
+        return transactions.stream().map(ParsedTransaction::bookingDate).min(Comparator.naturalOrder()).orElse(null);
+    }
+
+    private static LocalDate maxDate(List<ParsedTransaction> transactions) {
+        return transactions.stream().map(ParsedTransaction::bookingDate).max(Comparator.naturalOrder()).orElse(null);
+    }
+}

@@ -1,5 +1,6 @@
 package com.paymatch.common.error;
 
+import com.paymatch.statement.parser.StatementParseException;
 import jakarta.validation.ConstraintViolationException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -41,6 +42,11 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
     @ExceptionHandler(BadRequestException.class)
     public ProblemDetail handleBadRequest(BadRequestException ex) {
         return problem(HttpStatus.BAD_REQUEST, "Bad request", ex.getMessage());
+    }
+
+    @ExceptionHandler(StatementParseException.class)
+    public ProblemDetail handleStatementParse(StatementParseException ex) {
+        return problem(HttpStatus.BAD_REQUEST, "Could not read statement", ex.getMessage());
     }
 
     @ExceptionHandler(PropertyReferenceException.class)
