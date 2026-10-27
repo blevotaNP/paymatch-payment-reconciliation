@@ -3,6 +3,8 @@ package com.paymatch.transaction;
 import com.paymatch.statement.StatementImport;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
@@ -53,6 +55,10 @@ public class BankTransaction {
 
     private String rawData;
 
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    private MatchStatus matchStatus = MatchStatus.UNMATCHED;
+
     @CreationTimestamp
     @Column(nullable = false, updatable = false)
     private Instant createdAt;
@@ -75,6 +81,14 @@ public class BankTransaction {
         this.bankReference = bankReference;
         this.dedupKey = dedupKey;
         this.rawData = rawData;
+    }
+
+    public void setMatchStatus(MatchStatus matchStatus) {
+        this.matchStatus = matchStatus;
+    }
+
+    public MatchStatus getMatchStatus() {
+        return matchStatus;
     }
 
     public boolean isIncoming() {
