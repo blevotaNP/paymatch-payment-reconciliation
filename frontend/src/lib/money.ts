@@ -39,3 +39,19 @@ export function isZero(amount: string): boolean {
 export function formatSignedMoney(amount: string, currency = 'PLN'): string {
   return amount.startsWith('-') ? formatMoney(amount, currency) : `+${formatMoney(amount, currency)}`
 }
+
+/** "1230.5" -> 123050n. Used for adding up amounts in forms without floating point. */
+export function toCents(amount: string): bigint {
+  const negative = amount.startsWith('-')
+  const [intPart, fracPart = ''] = amount.replace(/^[-+]/, '').split('.')
+  const cents = BigInt(intPart || '0') * 100n + BigInt((fracPart + '00').slice(0, 2))
+  return negative ? -cents : cents
+}
+
+/** 123050n -> "1230.50" */
+export function fromCents(cents: bigint): string {
+  const negative = cents < 0n
+  const abs = negative ? -cents : cents
+  const fraction = (abs % 100n).toString().padStart(2, '0')
+  return `${negative ? '-' : ''}${abs / 100n}.${fraction}`
+}

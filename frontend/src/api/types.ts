@@ -158,6 +158,8 @@ export interface Allocation {
   source: 'AUTO' | 'MANUAL'
   createdBy?: string
   createdAt: string
+  transactionId: number
+  note?: string
 }
 
 export interface Transaction {
@@ -176,6 +178,38 @@ export interface Transaction {
   matchStatus: MatchStatus
   bestSuggestion?: { rule: MatchRule; ruleLabel: string; confidence: Confidence; score: number; invoiceNumbers: string[] }
   matchedInvoices: string[]
+  ignoreReason?: IgnoreReason
+  ignoreReasonLabel?: string
+  ignoreNote?: string
+  version: number
+}
+
+export type IgnoreReason = 'REFUND' | 'BANK_FEE' | 'INTERNAL_TRANSFER' | 'LOAN_OR_CAPITAL' | 'OTHER'
+
+export type AuditAction =
+  | 'IMPORT_CREATED'
+  | 'IMPORT_UNDONE'
+  | 'INVOICE_CREATED'
+  | 'INVOICE_UPDATED'
+  | 'INVOICE_DELETED'
+  | 'INVOICES_IMPORTED'
+  | 'MATCH_AUTO_CONFIRMED'
+  | 'MATCH_CONFIRMED'
+  | 'MANUAL_ALLOCATION'
+  | 'SUGGESTION_REJECTED'
+  | 'TRANSACTION_IGNORED'
+  | 'MATCH_UNDONE'
+
+export interface AuditEvent {
+  id: number
+  occurredAt: string
+  user?: string
+  action: AuditAction
+  entityType: 'TRANSACTION' | 'INVOICE' | 'IMPORT'
+  entityId?: number
+  summary: string
+  invoiceIds: number[]
+  details: Record<string, unknown>
 }
 
 export interface TransactionDetails {
