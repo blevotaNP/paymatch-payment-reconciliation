@@ -12,6 +12,7 @@ import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
+import jakarta.persistence.Version;
 import org.hibernate.annotations.CreationTimestamp;
 
 import java.math.BigDecimal;
@@ -59,6 +60,14 @@ public class BankTransaction {
     @Column(nullable = false)
     private MatchStatus matchStatus = MatchStatus.UNMATCHED;
 
+    @Enumerated(EnumType.STRING)
+    private IgnoreReason ignoreReason;
+
+    private String ignoreNote;
+
+    @Version
+    private long version;
+
     @CreationTimestamp
     @Column(nullable = false, updatable = false)
     private Instant createdAt;
@@ -89,6 +98,31 @@ public class BankTransaction {
 
     public MatchStatus getMatchStatus() {
         return matchStatus;
+    }
+
+    public void ignore(IgnoreReason reason, String note) {
+        this.matchStatus = MatchStatus.IGNORED;
+        this.ignoreReason = reason;
+        this.ignoreNote = note;
+    }
+
+    /** Back to the review queue after a match or an "ignore" decision was undone. */
+    public void reopen() {
+        this.matchStatus = MatchStatus.UNMATCHED;
+        this.ignoreReason = null;
+        this.ignoreNote = null;
+    }
+
+    public IgnoreReason getIgnoreReason() {
+        return ignoreReason;
+    }
+
+    public String getIgnoreNote() {
+        return ignoreNote;
+    }
+
+    public long getVersion() {
+        return version;
     }
 
     public boolean isIncoming() {

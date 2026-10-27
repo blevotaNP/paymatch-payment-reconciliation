@@ -18,6 +18,11 @@ public interface MatchSuggestionRepository extends JpaRepository<MatchSuggestion
     @Query("delete from MatchSuggestion s where s.transaction.id in :transactionIds and s.status = com.paymatch.matching.SuggestionStatus.PENDING")
     int deletePendingForTransactions(@Param("transactionIds") Collection<Long> transactionIds);
 
+    /** Removes pending and confirmed suggestions of a transaction; rejected ones stay so they are not offered again. */
+    @Modifying
+    @Query("delete from MatchSuggestion s where s.transaction.id = :transactionId and s.status <> com.paymatch.matching.SuggestionStatus.REJECTED")
+    int deleteDecidedNonRejected(@Param("transactionId") Long transactionId);
+
     @Query("select distinct i.suggestion.transaction.id from MatchSuggestionItem i where i.invoice.id = :invoiceId and i.suggestion.status = com.paymatch.matching.SuggestionStatus.PENDING")
     List<Long> findTransactionIdsWithPendingSuggestionFor(@Param("invoiceId") Long invoiceId);
 

@@ -15,7 +15,7 @@ public class DatabaseCleaner {
 
     public void clean() {
         jdbcTemplate.execute("""
-                TRUNCATE allocation, match_suggestion_item, match_suggestion, bank_transaction,
+                TRUNCATE audit_event, allocation, match_suggestion_item, match_suggestion, bank_transaction,
                          statement_import, invoice, counterparty RESTART IDENTITY CASCADE
                 """);
     }

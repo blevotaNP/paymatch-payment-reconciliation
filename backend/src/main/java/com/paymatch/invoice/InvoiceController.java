@@ -1,5 +1,6 @@
 package com.paymatch.invoice;
 
+import com.paymatch.allocation.AllocationResponse;
 import com.paymatch.common.error.BadRequestException;
 import com.paymatch.common.web.PageResponse;
 import io.swagger.v3.oas.annotations.Operation;
@@ -56,6 +57,12 @@ public class InvoiceController {
     @GetMapping("/{id}")
     public InvoiceResponse get(@PathVariable Long id) {
         return invoiceService.get(id);
+    }
+
+    @GetMapping("/{id}/payments")
+    @Operation(summary = "Confirmed payments (allocations) of an invoice")
+    public List<AllocationResponse> payments(@PathVariable Long id) {
+        return invoiceService.payments(id);
     }
 
     @PostMapping

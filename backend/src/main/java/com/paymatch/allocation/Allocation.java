@@ -53,6 +53,8 @@ public class Allocation {
     @JoinColumn(name = "created_by")
     private AppUser createdBy;
 
+    private String note;
+
     @CreationTimestamp
     @Column(nullable = false, updatable = false)
     private Instant createdAt;
@@ -68,6 +70,14 @@ public class Allocation {
         this.source = source;
         this.suggestion = suggestion;
         this.createdBy = createdBy;
+    }
+
+    public void setNote(String note) {
+        this.note = note;
+    }
+
+    public String getNote() {
+        return note;
     }
 
     public Long getId() {

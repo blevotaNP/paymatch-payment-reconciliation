@@ -21,6 +21,9 @@ public interface AllocationRepository extends JpaRepository<Allocation, Long> {
     @EntityGraph(attributePaths = "invoice")
     List<Allocation> findByTransactionIdIn(Collection<Long> transactionIds);
 
+    @EntityGraph(attributePaths = {"invoice", "invoice.counterparty", "createdBy", "transaction"})
+    List<Allocation> findByInvoiceIdOrderByCreatedAt(Long invoiceId);
+
     @Query("select a from Allocation a join fetch a.invoice where a.transaction.statementImport.id = :importId")
     List<Allocation> findByImportId(@Param("importId") Long importId);
 

@@ -25,7 +25,11 @@ public record TransactionResponse(
         /** Best pending suggestion, when the status is SUGGESTED. */
         MatchSummary bestSuggestion,
         /** Invoice numbers the transaction is allocated to, when MATCHED. */
-        List<String> matchedInvoices) {
+        List<String> matchedInvoices,
+        IgnoreReason ignoreReason,
+        String ignoreReasonLabel,
+        String ignoreNote,
+        long version) {
 
     public static TransactionResponse from(BankTransaction t, MatchSummary bestSuggestion, List<String> matchedInvoices) {
         return new TransactionResponse(
@@ -43,7 +47,11 @@ public record TransactionResponse(
                 t.getBankReference(),
                 t.getMatchStatus(),
                 bestSuggestion,
-                matchedInvoices);
+                matchedInvoices,
+                t.getIgnoreReason(),
+                t.getIgnoreReason() != null ? t.getIgnoreReason().getLabel() : null,
+                t.getIgnoreNote(),
+                t.getVersion());
     }
 
     public record MatchSummary(MatchRule rule, String ruleLabel, Confidence confidence, int score, List<String> invoiceNumbers) {
