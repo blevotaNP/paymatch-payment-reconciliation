@@ -97,6 +97,16 @@
     </dependencies>
 
     <build>
+        <testResources>
+            <testResource>
+                <directory>src/test/resources</directory>
+            </testResource>
+            <!-- parser tests run against the same sample files that are shipped for the demo -->
+            <testResource>
+                <directory>../samples</directory>
+                <targetPath>samples</targetPath>
+            </testResource>
+        </testResources>
         <plugins>
             <plugin>
                 <groupId>org.springframework.boot</groupId>
