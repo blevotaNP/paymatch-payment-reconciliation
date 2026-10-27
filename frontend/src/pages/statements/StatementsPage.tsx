@@ -140,11 +140,11 @@ export function StatementsPage() {
                   width: 110,
                   render: (item) =>
                     item.status === 'ACTIVE' ? (
-                      <Badge color="teal" style={{ overflow: 'visible' }}>
+                      <Badge color="teal">
                         Active
                       </Badge>
                     ) : (
-                      <Badge color="gray" style={{ overflow: 'visible' }} title={item.undoneAt ? `Undone ${formatDateTime(item.undoneAt)} by ${item.undoneBy}` : undefined}>
+                      <Badge color="gray" title={item.undoneAt ? `Undone ${formatDateTime(item.undoneAt)} by ${item.undoneBy}` : undefined}>
                         Undone
                       </Badge>
                     ),

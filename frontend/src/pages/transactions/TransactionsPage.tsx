@@ -1,15 +1,17 @@
-import { Badge, CloseButton, Group, Paper, SegmentedControl, Stack, Text, TextInput } from '@mantine/core'
+import { Badge, Button, CloseButton, Group, Paper, SegmentedControl, Select, Stack, Text, TextInput } from '@mantine/core'
 import { DatePickerInput, type DatesRangeValue } from '@mantine/dates'
 import { useDebouncedValue } from '@mantine/hooks'
-import { IconArrowsExchange, IconCalendar, IconSearch } from '@tabler/icons-react'
+import { IconArrowsExchange, IconCalendar, IconRefresh, IconSearch } from '@tabler/icons-react'
 import { DataTable, type DataTableSortStatus } from 'mantine-datatable'
 import { useState } from 'react'
 import { Link, useSearchParams } from 'react-router'
-import { useImport, useTransactions } from '../../api/statements'
-import type { Transaction } from '../../api/types'
+import { useImport, useRunMatching, useTransactions } from '../../api/statements'
+import type { MatchStatus, Transaction } from '../../api/types'
 import { AmountText } from '../../components/AmountText'
 import { EmptyState } from '../../components/EmptyState'
 import { ErrorState } from '../../components/ErrorState'
+import { MatchCell } from '../../components/MatchBadges'
+import { notifyError, notifySuccess } from '../../components/notify'
 import { PageHeader } from '../../components/PageHeader'
 import { formatDate } from '../../lib/dates'
 import { formatIban } from '../../lib/validation'
@@ -21,6 +23,12 @@ const DIRECTIONS = [
   { value: 'INCOMING', label: 'Incoming' },
   { value: 'OUTGOING', label: 'Outgoing' },
 ]
+const MATCH_FILTERS = [
+  { value: 'SUGGESTED', label: 'To review' },
+  { value: 'UNMATCHED', label: 'Unmatched' },
+  { value: 'MATCHED', label: 'Matched' },
+  { value: 'IGNORED', label: 'Not an invoice' },
+]
 
 export function TransactionsPage() {
   const [searchParams, setSearchParams] = useSearchParams()
@@ -30,6 +38,8 @@ export function TransactionsPage() {
   const [search, setSearch] = useState('')
   const [debouncedSearch] = useDebouncedValue(search, 300)
   const [direction, setDirection] = useState('ALL')
+  const [matchStatus, setMatchStatus] = useState<string | null>(searchParams.get('matchStatus'))
+  const runMatching = useRunMatching()
   const [range, setRange] = useState<DatesRangeValue<string>>([null, null])
   const [page, setPage] = useState(1)
   const [pageSize, setPageSize] = useState(20)
@@ -40,6 +50,7 @@ export function TransactionsPage() {
     search: debouncedSearch,
     direction: direction === 'ALL' ? undefined : (direction as 'INCOMING' | 'OUTGOING'),
     importId,
+    matchStatus: matchStatus ? [matchStatus as MatchStatus] : undefined,
     from: range[0],
     to: range[1],
     page: page - 1,
@@ -47,11 +58,29 @@ export function TransactionsPage() {
     sort: { column: sortStatus.columnAccessor, direction: sortStatus.direction },
   })
 
-  const filtersActive = Boolean(debouncedSearch) || direction !== 'ALL' || importId != null || range[0] != null
+  const filtersActive =
+    Boolean(debouncedSearch) || direction !== 'ALL' || importId != null || range[0] != null || matchStatus != null
+
+  const rerun = () =>
+    runMatching.mutate(undefined, {
+      onSuccess: (result) =>
+        notifySuccess(
+          `Checked ${result.checked} payments: ${result.autoConfirmed} matched automatically, ${result.suggested} to review`,
+        ),
+      onError: (e) => notifyError(e, 'Matching failed'),
+    })
 
   return (
     <>
-      <PageHeader title="Transactions" description="All transactions from imported bank statements." />
+      <PageHeader
+        title="Transactions"
+        description="All transactions from imported bank statements."
+        actions={
+          <Button variant="default" leftSection={<IconRefresh size={16} />} loading={runMatching.isPending} onClick={rerun}>
+            Run matching
+          </Button>
+        }
+      />
 
       <Paper p={0}>
         <Group p="md" pb="sm" gap="sm" wrap="wrap">
@@ -72,6 +101,17 @@ export function TransactionsPage() {
               setDirection(value)
               setPage(1)
             }}
+          />
+          <Select
+            placeholder="Any match status"
+            data={MATCH_FILTERS}
+            value={matchStatus}
+            onChange={(value) => {
+              setMatchStatus(value)
+              setPage(1)
+            }}
+            clearable
+            w={180}
           />
           <DatePickerInput
             type="range"
@@ -188,8 +228,15 @@ export function TransactionsPage() {
                 render: (tx) => <AmountText amount={tx.amount} currency={tx.currency} />,
               },
               {
+                accessor: 'matchStatus',
+                title: 'Match',
+                width: 220,
+                render: (tx) => <MatchCell tx={tx} />,
+              },
+              {
                 accessor: 'bankFormat',
                 title: 'Source',
+                width: 90,
                 render: (tx) => (
                   <Badge variant="outline" color="gray" size="sm">
                     {tx.bankFormat.replace('_CSV', '').replace('_', ' ')}

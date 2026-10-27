@@ -27,6 +27,19 @@ export function ImportSummary({ result }: { result: StatementImport }) {
         <StatCard label="Skipped" value={result.skippedCount} color={result.skippedCount ? 'red' : undefined} hint="could not be read" />
       </SimpleGrid>
 
+      {result.matching && result.matching.checked > 0 && (
+        <Paper p="sm" bg="gray.0">
+          <Text size="sm" fw={500} mb={6}>
+            Matching of {result.matching.checked} incoming payments
+          </Text>
+          <SimpleGrid cols={3}>
+            <StatCard label="Matched automatically" value={result.matching.autoConfirmed} color="teal" />
+            <StatCard label="To review" value={result.matching.suggested} color="blue" />
+            <StatCard label="No match found" value={result.matching.unmatched} color={result.matching.unmatched ? 'orange' : undefined} />
+          </SimpleGrid>
+        </Paper>
+      )}
+
       <Paper p="sm">
         <SimpleGrid cols={{ base: 1, sm: 2 }} spacing="xs">
           <Detail label="Account" value={result.accountIban ? formatIban(result.accountIban) : 'not in file'} mono={!!result.accountIban} />

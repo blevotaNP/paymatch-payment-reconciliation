@@ -1,9 +1,13 @@
-import { Badge, Code, Divider, Drawer, Group, Loader, SimpleGrid, Stack, Text } from '@mantine/core'
+import { Alert, Badge, Code, Divider, Drawer, Group, Loader, Paper, SimpleGrid, Stack, Text, Title } from '@mantine/core'
+import { IconInfoCircle } from '@tabler/icons-react'
 import { useTransaction } from '../../api/statements'
 import { AmountText } from '../../components/AmountText'
 import { ErrorState } from '../../components/ErrorState'
-import { formatDate } from '../../lib/dates'
+import { MatchCell } from '../../components/MatchBadges'
+import { MoneyText } from '../../components/MoneyText'
+import { formatDate, formatDateTime } from '../../lib/dates'
 import { formatIban } from '../../lib/validation'
+import { SuggestionCard } from './SuggestionCard'
 
 export function TransactionDrawer({ id, onClose }: { id: number | null; onClose: () => void }) {
   const { data, isPending, error } = useTransaction(id)
@@ -27,6 +31,7 @@ export function TransactionDrawer({ id, onClose }: { id: number | null; onClose:
           </Group>
 
           <Text size="sm">{data.transaction.title ?? '–'}</Text>
+          <MatchCell tx={data.transaction} />
           <Divider />
 
           <SimpleGrid cols={2} spacing="sm">
@@ -44,6 +49,40 @@ export function TransactionDrawer({ id, onClose }: { id: number | null; onClose:
               </Badge>
             </div>
           </SimpleGrid>
+
+          {data.transaction.amount.startsWith('-') ? null : (
+            <Stack gap="xs">
+              <Title order={5}>Matching</Title>
+              {data.allocations.length > 0 && (
+                <Paper p="sm" bg="teal.0" withBorder={false}>
+                  <Stack gap={6}>
+                    {data.allocations.map((allocation) => (
+                      <Group key={allocation.id} justify="space-between" wrap="nowrap">
+                        <div>
+                          <Text size="sm" fw={500}>
+                            Paid {allocation.invoiceNumber}
+                          </Text>
+                          <Text size="xs" c="dimmed">
+                            {allocation.source === 'AUTO' ? 'Confirmed automatically' : `Confirmed by ${allocation.createdBy}`} ·{' '}
+                            {formatDateTime(allocation.createdAt)}
+                          </Text>
+                        </div>
+                        <MoneyText amount={allocation.amount} currency={data.transaction.currency} fw={500} />
+                      </Group>
+                    ))}
+                  </Stack>
+                </Paper>
+              )}
+              {data.suggestions.map((suggestion) => (
+                <SuggestionCard key={suggestion.id} suggestion={suggestion} currency={data.transaction.currency} />
+              ))}
+              {data.suggestions.length === 0 && data.allocations.length === 0 && (
+                <Alert color="gray" icon={<IconInfoCircle size={18} />} py="xs">
+                  No invoice matches this payment. It will be checked again when new invoices are added.
+                </Alert>
+              )}
+            </Stack>
+          )}
 
           {data.rawData && (
             <div>

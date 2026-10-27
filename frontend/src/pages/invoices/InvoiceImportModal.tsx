@@ -117,6 +117,12 @@ function ImportSummary({ result, onDone, onAgain }: { result: InvoiceImportResul
           </Table>
         </Paper>
       )}
+      {result.matching.autoConfirmed > 0 && (
+        <Alert color="teal" icon={<IconCircleCheck size={18} />} py="xs">
+          {result.matching.autoConfirmed} of the new invoices were matched right away to payments that were already
+          imported.
+        </Alert>
+      )}
       <Text size="xs" c="dimmed">
         Detected encoding: {result.detectedEncoding}
       </Text>
