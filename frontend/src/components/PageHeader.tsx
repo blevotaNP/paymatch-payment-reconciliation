@@ -1,5 +1,5 @@
 import { Group, Stack, Text, Title } from '@mantine/core'
-import type { ReactNode } from 'react'
+import { useEffect, type ReactNode } from 'react'
 
 interface PageHeaderProps {
   title: string
@@ -8,6 +8,10 @@ interface PageHeaderProps {
 }
 
 export function PageHeader({ title, description, actions }: PageHeaderProps) {
+  useEffect(() => {
+    document.title = `${title} · PayMatch`
+  }, [title])
+
   return (
     <Group justify="space-between" align="flex-end" mb="lg" wrap="wrap" gap="sm">
       <Stack gap={2}>

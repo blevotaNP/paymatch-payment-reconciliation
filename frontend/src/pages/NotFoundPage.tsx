@@ -11,7 +11,7 @@ export function NotFoundPage() {
       description="The page you are looking for does not exist."
       action={
         <Button component={Link} to="/" variant="default">
-          Back to invoices
+          Back to dashboard
         </Button>
       }
     />

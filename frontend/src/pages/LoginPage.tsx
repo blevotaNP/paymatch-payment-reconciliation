@@ -1,6 +1,7 @@
 import { Alert, Button, Center, Paper, PasswordInput, Stack, Text, TextInput } from '@mantine/core'
 import { useForm } from '@mantine/form'
 import { IconAlertCircle } from '@tabler/icons-react'
+import { useEffect } from 'react'
 import { Navigate, useLocation, useNavigate } from 'react-router'
 import { useCurrentUser, useLogin } from '../api/auth'
 import { Logo } from '../layout/Logo'
@@ -19,6 +20,10 @@ export function LoginPage() {
       password: (value) => (value ? null : 'Enter your password'),
     },
   })
+
+  useEffect(() => {
+    document.title = 'Sign in · PayMatch'
+  }, [])
 
   if (user) return <Navigate to={from} replace />
 

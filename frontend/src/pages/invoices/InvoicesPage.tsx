@@ -4,6 +4,7 @@ import { modals } from '@mantine/modals'
 import { IconFileImport, IconFileInvoice, IconPencil, IconPlus, IconSearch, IconTrash } from '@tabler/icons-react'
 import { DataTable, type DataTableSortStatus } from 'mantine-datatable'
 import { useState } from 'react'
+import { useSearchParams } from 'react-router'
 import { useDeleteInvoice, useInvoices } from '../../api/invoices'
 import type { Invoice, InvoiceStatus } from '../../api/types'
 import { EmptyState } from '../../components/EmptyState'
@@ -25,8 +26,10 @@ const STATUS_FILTERS = [{ value: 'ALL', label: 'All' }, ...INVOICE_STATUS_OPTION
 export function InvoicesPage() {
   const [search, setSearch] = useState('')
   const [debouncedSearch] = useDebouncedValue(search, 300)
-  const [status, setStatus] = useState<string>('ALL')
-  const [overdueOnly, setOverdueOnly] = useState(false)
+  // the dashboard links here with ?overdue=true
+  const [searchParams] = useSearchParams()
+  const [status, setStatus] = useState<string>(searchParams.get('status') ?? 'ALL')
+  const [overdueOnly, setOverdueOnly] = useState(searchParams.get('overdue') === 'true')
   const [page, setPage] = useState(1)
   const [pageSize, setPageSize] = useState(20)
   const [sortStatus, setSortStatus] = useState<DataTableSortStatus<Invoice>>({ columnAccessor: 'dueDate', direction: 'asc' })

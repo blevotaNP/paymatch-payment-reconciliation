@@ -2,7 +2,7 @@ import { Badge, Group, Loader, Paper, Stack, Text } from '@mantine/core'
 import { useInvoicePayments } from '../../api/review'
 import type { Invoice } from '../../api/types'
 import { MoneyText } from '../../components/MoneyText'
-import { formatDateTime } from '../../lib/dates'
+import { formatDate, formatDateTime } from '../../lib/dates'
 
 export function InvoicePayments({ invoice }: { invoice: Invoice }) {
   const { data, isPending } = useInvoicePayments(invoice.id)
@@ -26,15 +26,19 @@ export function InvoicePayments({ invoice }: { invoice: Invoice }) {
               <div>
                 <Group gap={6}>
                   <Text size="sm" fw={500}>
-                    Bank transfer #{payment.transactionId}
+                    {formatDate(payment.bookingDate)} · {payment.sender ?? 'bank transfer'}
                   </Text>
                   <Badge size="xs" color={payment.source === 'AUTO' ? 'teal' : 'blue'}>
                     {payment.source === 'AUTO' ? 'Automatic' : 'Manual'}
                   </Badge>
                 </Group>
+                {payment.title && (
+                  <Text size="xs" lineClamp={1}>
+                    {payment.title}
+                  </Text>
+                )}
                 <Text size="xs" c="dimmed">
-                  {formatDateTime(payment.createdAt)}
-                  {payment.createdBy ? ` · ${payment.createdBy}` : ''}
+                  {payment.source === 'AUTO' ? 'Matched' : `Matched by ${payment.createdBy}`} {formatDateTime(payment.createdAt)}
                 </Text>
                 {payment.note && (
                   <Text size="xs" fs="italic">

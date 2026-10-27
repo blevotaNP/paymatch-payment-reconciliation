@@ -1,4 +1,4 @@
-import { AppShell, Avatar, Badge, Burger, Group, Menu, NavLink, Text, UnstyledButton } from '@mantine/core'
+import { AppShell, Avatar, Badge, Burger, Center, Divider, Group, Loader, Menu, NavLink, Text, UnstyledButton } from '@mantine/core'
 import { useDisclosure } from '@mantine/hooks'
 import {
   IconApi,
@@ -9,20 +9,31 @@ import {
   IconFileInvoice,
   IconFileUpload,
   IconHistory,
+  IconLayoutDashboard,
   IconLogout,
+  IconReportAnalytics,
 } from '@tabler/icons-react'
+import { Suspense } from 'react'
 import { NavLink as RouterNavLink, Outlet, useNavigate } from 'react-router'
 import { useCurrentUser, useLogout } from '../api/auth'
 import { useReviewSummary } from '../api/review'
 import { Logo } from './Logo'
 
-const NAV_ITEMS = [
-  { to: '/review', label: 'Review queue', icon: IconChecklist },
-  { to: '/statements', label: 'Bank statements', icon: IconFileUpload },
-  { to: '/transactions', label: 'Transactions', icon: IconArrowsExchange },
-  { to: '/invoices', label: 'Invoices', icon: IconFileInvoice },
-  { to: '/counterparties', label: 'Counterparties', icon: IconBuildingStore },
-  { to: '/activity', label: 'Activity', icon: IconHistory },
+const NAV_GROUPS = [
+  [
+    { to: '/dashboard', label: 'Dashboard', icon: IconLayoutDashboard },
+    { to: '/review', label: 'Review queue', icon: IconChecklist },
+  ],
+  [
+    { to: '/statements', label: 'Bank statements', icon: IconFileUpload },
+    { to: '/transactions', label: 'Transactions', icon: IconArrowsExchange },
+    { to: '/invoices', label: 'Invoices', icon: IconFileInvoice },
+    { to: '/counterparties', label: 'Counterparties', icon: IconBuildingStore },
+  ],
+  [
+    { to: '/reports', label: 'Reports', icon: IconReportAnalytics },
+    { to: '/activity', label: 'Activity', icon: IconHistory },
+  ],
 ]
 
 export function AppLayout() {
@@ -84,29 +95,42 @@ export function AppLayout() {
       </AppShell.Header>
 
       <AppShell.Navbar p="sm">
-        {NAV_ITEMS.map((item) => (
-          <NavLink
-            key={item.to}
-            component={RouterNavLink}
-            to={item.to}
-            label={item.label}
-            leftSection={<item.icon size={18} stroke={1.6} />}
-            rightSection={
-              item.to === '/review' && reviewSummary?.toReview ? (
-                <Badge size="sm" variant="filled" circle={reviewSummary.toReview < 10}>
-                  {reviewSummary.toReview}
-                </Badge>
-              ) : undefined
-            }
-            onClick={close}
-            styles={{ root: { borderRadius: 'var(--mantine-radius-md)' }, label: { fontWeight: 500 } }}
-          />
+        {NAV_GROUPS.map((group, i) => (
+          <div key={group[0].to}>
+            {i > 0 && <Divider my="xs" />}
+            {group.map((item) => (
+              <NavLink
+                key={item.to}
+                component={RouterNavLink}
+                to={item.to}
+                label={item.label}
+                leftSection={<item.icon size={18} stroke={1.6} />}
+                rightSection={
+                  item.to === '/review' && reviewSummary?.toReview ? (
+                    <Badge size="sm" variant="filled" circle={reviewSummary.toReview < 10}>
+                      {reviewSummary.toReview}
+                    </Badge>
+                  ) : undefined
+                }
+                onClick={close}
+                styles={{ root: { borderRadius: 'var(--mantine-radius-md)' }, label: { fontWeight: 500 } }}
+              />
+            ))}
+          </div>
         ))}
       </AppShell.Navbar>
 
       <AppShell.Main>
         <div style={{ maxWidth: 1360, margin: '0 auto' }}>
-          <Outlet />
+          <Suspense
+            fallback={
+              <Center h={240}>
+                <Loader />
+              </Center>
+            }
+          >
+            <Outlet />
+          </Suspense>
         </div>
       </AppShell.Main>
     </AppShell>
