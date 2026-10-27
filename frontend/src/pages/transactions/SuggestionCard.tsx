@@ -8,6 +8,7 @@ import {
   IconUser,
   type Icon,
 } from '@tabler/icons-react'
+import type { ReactNode } from 'react'
 import type { MatchReason, Suggestion } from '../../api/types'
 import { ConfidenceBadge } from '../../components/MatchBadges'
 import { MoneyText } from '../../components/MoneyText'
@@ -22,10 +23,25 @@ const REASON_ICONS: Record<MatchReason['field'], Icon> = {
   invoice: IconFileInvoice,
 }
 
-export function SuggestionCard({ suggestion, currency }: { suggestion: Suggestion; currency: string }) {
+interface SuggestionCardProps {
+  suggestion: Suggestion
+  currency: string
+  /** Buttons shown at the bottom, e.g. confirm and reject in the review queue. */
+  actions?: ReactNode
+  highlighted?: boolean
+}
+
+export function SuggestionCard({ suggestion, currency, actions, highlighted }: SuggestionCardProps) {
   const decided = suggestion.status !== 'PENDING'
   return (
-    <Paper p="sm" style={{ opacity: suggestion.status === 'REJECTED' ? 0.6 : 1 }}>
+    <Paper
+      p="sm"
+      style={{
+        opacity: suggestion.status === 'REJECTED' ? 0.6 : 1,
+        borderColor: highlighted ? 'var(--mantine-color-brand-4)' : undefined,
+        boxShadow: highlighted ? '0 0 0 1px var(--mantine-color-brand-4)' : undefined,
+      }}
+    >
       <Stack gap="xs">
         <Group justify="space-between" wrap="nowrap">
           <div>
@@ -36,7 +52,7 @@ export function SuggestionCard({ suggestion, currency }: { suggestion: Suggestio
               {suggestion.ruleDescription}
             </Text>
           </div>
-          <Group gap={6} wrap="nowrap">
+          <Group gap={6} wrap="nowrap" style={{ flexShrink: 0 }}>
             {decided && (
               <Badge color={suggestion.status === 'CONFIRMED' ? 'teal' : 'red'} variant="light">
                 {suggestion.status === 'CONFIRMED' ? 'Confirmed' : 'Rejected'}
@@ -84,6 +100,8 @@ export function SuggestionCard({ suggestion, currency }: { suggestion: Suggestio
             )
           })}
         </Stack>
+
+        {actions}
 
         {decided && suggestion.decidedAt && (
           <Text size="xs" c="dimmed">

@@ -4,7 +4,9 @@ import { AppLayout } from './layout/AppLayout'
 import { LoginPage } from './pages/LoginPage'
 import { NotFoundPage } from './pages/NotFoundPage'
 import { CounterpartiesPage } from './pages/counterparties/CounterpartiesPage'
+import { ActivityPage } from './pages/activity/ActivityPage'
 import { InvoicesPage } from './pages/invoices/InvoicesPage'
+import { ReviewPage } from './pages/review/ReviewPage'
 import { StatementsPage } from './pages/statements/StatementsPage'
 import { TransactionsPage } from './pages/transactions/TransactionsPage'
 
@@ -17,7 +19,9 @@ export const router = createBrowserRouter([
       </RequireAuth>
     ),
     children: [
-      { index: true, element: <Navigate to="/invoices" replace /> },
+      { index: true, element: <Navigate to="/review" replace /> },
+      { path: 'review', element: <ReviewPage /> },
+      { path: 'activity', element: <ActivityPage /> },
       { path: 'invoices', element: <InvoicesPage /> },
       { path: 'counterparties', element: <CounterpartiesPage /> },
       { path: 'statements', element: <StatementsPage /> },

@@ -1,23 +1,28 @@
-import { AppShell, Avatar, Burger, Group, Menu, NavLink, Text, UnstyledButton } from '@mantine/core'
+import { AppShell, Avatar, Badge, Burger, Group, Menu, NavLink, Text, UnstyledButton } from '@mantine/core'
 import { useDisclosure } from '@mantine/hooks'
 import {
   IconApi,
   IconArrowsExchange,
   IconBuildingStore,
+  IconChecklist,
   IconChevronDown,
   IconFileInvoice,
   IconFileUpload,
+  IconHistory,
   IconLogout,
 } from '@tabler/icons-react'
 import { NavLink as RouterNavLink, Outlet, useNavigate } from 'react-router'
 import { useCurrentUser, useLogout } from '../api/auth'
+import { useReviewSummary } from '../api/review'
 import { Logo } from './Logo'
 
 const NAV_ITEMS = [
+  { to: '/review', label: 'Review queue', icon: IconChecklist },
   { to: '/statements', label: 'Bank statements', icon: IconFileUpload },
   { to: '/transactions', label: 'Transactions', icon: IconArrowsExchange },
   { to: '/invoices', label: 'Invoices', icon: IconFileInvoice },
   { to: '/counterparties', label: 'Counterparties', icon: IconBuildingStore },
+  { to: '/activity', label: 'Activity', icon: IconHistory },
 ]
 
 export function AppLayout() {
@@ -25,6 +30,7 @@ export function AppLayout() {
   const { data: user } = useCurrentUser()
   const logout = useLogout()
   const navigate = useNavigate()
+  const { data: reviewSummary } = useReviewSummary()
 
   const initials = user?.displayName
     .split(' ')
@@ -85,6 +91,13 @@ export function AppLayout() {
             to={item.to}
             label={item.label}
             leftSection={<item.icon size={18} stroke={1.6} />}
+            rightSection={
+              item.to === '/review' && reviewSummary?.toReview ? (
+                <Badge size="sm" variant="filled" circle={reviewSummary.toReview < 10}>
+                  {reviewSummary.toReview}
+                </Badge>
+              ) : undefined
+            }
             onClick={close}
             styles={{ root: { borderRadius: 'var(--mantine-radius-md)' }, label: { fontWeight: 500 } }}
           />
