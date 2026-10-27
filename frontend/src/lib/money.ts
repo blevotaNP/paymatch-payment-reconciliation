@@ -55,3 +55,18 @@ export function fromCents(cents: bigint): string {
   const fraction = (abs % 100n).toString().padStart(2, '0')
   return `${negative ? '-' : ''}${abs / 100n}.${fraction}`
 }
+
+/**
+ * Only for drawing charts and proportions: bar heights do not need cent precision,
+ * and nothing computed from this value is ever shown as an amount.
+ */
+export function toChartNumber(amount: string): number {
+  return Number(amount)
+}
+
+/** "123456.78" -> "123,5 tys. zł", for chart axes and compact tiles. */
+export function formatMoneyCompact(value: number): string {
+  if (Math.abs(value) >= 1_000_000) return `${(value / 1_000_000).toFixed(1).replace('.', ',')} mln zł`
+  if (Math.abs(value) >= 1_000) return `${(value / 1_000).toFixed(1).replace('.', ',')} tys. zł`
+  return `${Math.round(value)} zł`
+}

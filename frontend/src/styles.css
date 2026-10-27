@@ -19,3 +19,7 @@ body {
   flex-shrink: 0;
   overflow: visible;
 }
+
+.tile:hover {
+  box-shadow: var(--mantine-shadow-sm);
+}

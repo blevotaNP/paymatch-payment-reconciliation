@@ -160,6 +160,9 @@ export interface Allocation {
   createdAt: string
   transactionId: number
   note?: string
+  bookingDate: string
+  sender?: string
+  title?: string
 }
 
 export interface Transaction {
@@ -218,4 +221,45 @@ export interface TransactionDetails {
   rawData: string | null
   suggestions: Suggestion[]
   allocations: Allocation[]
+}
+
+export interface CountAndAmount {
+  count: number
+  amount: string
+}
+
+export interface Dashboard {
+  toReview: number
+  unmatchedPayments: CountAndAmount
+  openInvoices: CountAndAmount
+  overdueInvoices: CountAndAmount
+  matching: { incoming: number; autoMatched: number; manualMatched: number; ignored: number; open: number }
+  months: { month: string; invoiced: string; received: string }[]
+  topOverdue: { counterpartyId: number; name: string; invoices: number; amount: string; maxDaysOverdue: number }[]
+  recentActivity: AuditEvent[]
+}
+
+export type AgingBucket = 'NOT_DUE' | 'DAYS_1_30' | 'DAYS_31_60' | 'DAYS_61_90' | 'DAYS_90_PLUS'
+
+export interface AgingReport {
+  asOf: string
+  currency: string
+  rows: {
+    counterpartyId: number
+    counterpartyName: string
+    nip: string | null
+    buckets: Record<AgingBucket, string>
+    total: string
+    invoices: {
+      invoiceId: number
+      number: string
+      dueDate: string
+      daysOverdue: number
+      bucket: AgingBucket
+      grossAmount: string
+      remainingAmount: string
+    }[]
+  }[]
+  totals: Record<AgingBucket, string>
+  total: string
 }
