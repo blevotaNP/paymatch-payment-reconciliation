@@ -1,0 +1,18 @@
+﻿"Lista transakcji"
+"Dokument nr 0384712/2026"
+"Wygenerowany dnia:";"2026-10-28"
+"Dane Użytkownika:"
+"PRZYKŁADOWA FIRMA SP. Z O.O."
+"Wybrany rachunek:"
+"Nazwa rachunku";"Numer rachunku"
+"ING Business";"PL 50 1050 1445 1000 0090 1234 5678"
+"Zakres dat:";"2026-10-01";"2026-10-31"
+
+"Data transakcji";"Data księgowania";"Dane kontrahenta";"Tytuł";"Nr rachunku";"Nazwa banku";"Szczegóły";"Nr transakcji";"Kwota transakcji (waluta rachunku)";"Waluta";"Kwota blokady/zwolnienie blokady";"Waluta";"Kwota płatności w walucie";"Waluta";"Saldo po transakcji";"Waluta"
+"2026-10-21";"2026-10-21";"ZAKŁAD STOLARSKI WIŚNIEWSKI UL. LEŚNA 7 26-600 RADOM";"FV/6/10/2026";"'88 1020 1026 0000 1234 0056 7890'";"PKO BP S.A.";"PRZELEW";"202610210004521337";"984,00";"PLN";"";"";"";"";"4134,00";"PLN"
+"2026-10-25";"2026-10-26";"ORLEN STACJA NR 4410 KATOWICE";"Płatność kartą 25.10.2026 Nr karty 4246xx1234";"";"";"TR.KART";"202610260001102944";"-250,00";"PLN";"";"";"";"";"3884,00";"PLN"
+"2026-10-27";"2026-10-27";"SOFTWARE HOUSE KRAKÓW SP. Z O.O. UL. KODOWA 10 KRAKÓW";"FV/7/10/2026 rata 1";"'86 1050 1214 1000 0022 9988 7766'";"ING Bank Śląski S.A.";"PRZELEW";"202610270004533001";"10000,00";"PLN";"";"";"";"";"13884,00";"PLN"
+"2026-10-27";"2026-10-27";"BIURO RACHUNKOWE BILANS UL. LIPOWA 4 KRAKÓW";"FV/8/10/2026";"'65 1020 2892 0000 5566 7788 9900'";"PKO BP S.A.";"PRZELEW";"202610270004533187";"1845,00";"PLN";"";"";"";"";"15729,00";"PLN"
+"2026-10-28";"";"SKLEP INTERNETOWY BIUROWE.PL";"Płatność kartą 28.10.2026 Nr karty 4246xx1234";"";"";"TR.BLOK";"202610280000071122";"";"";"-59,99";"PLN";"";"";"";""
+
+"Dokument ma charakter informacyjny i nie stanowi dowodu księgowego."
