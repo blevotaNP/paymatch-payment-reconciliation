@@ -2,6 +2,7 @@ import { Alert, Anchor, Button, Group, Modal, Paper, SimpleGrid, Stack, Table, T
 import { Dropzone } from '@mantine/dropzone'
 import { IconAlertTriangle, IconCircleCheck, IconFileSpreadsheet, IconUpload, IconX } from '@tabler/icons-react'
 import { useImportInvoices } from '../../api/invoices'
+import { StatCard } from '../../components/StatCard'
 import type { InvoiceImportResult } from '../../api/types'
 
 const TEMPLATE = [
@@ -90,9 +91,9 @@ function ImportSummary({ result, onDone, onAgain }: { result: InvoiceImportResul
         </Text>
       </Group>
       <SimpleGrid cols={3}>
-        <Stat label="Rows in file" value={result.totalRows} />
-        <Stat label="Imported" value={result.imported} color="teal" />
-        <Stat label="Skipped" value={result.skipped.length} color={result.skipped.length ? 'red' : undefined} />
+        <StatCard label="Rows in file" value={result.totalRows} />
+        <StatCard label="Imported" value={result.imported} color="teal" />
+        <StatCard label="Skipped" value={result.skipped.length} color={result.skipped.length ? 'red' : undefined} />
       </SimpleGrid>
       {result.skipped.length > 0 && (
         <Paper p={0} mah={260} style={{ overflow: 'auto' }}>
@@ -126,18 +127,5 @@ function ImportSummary({ result, onDone, onAgain }: { result: InvoiceImportResul
         <Button onClick={onDone}>Done</Button>
       </Group>
     </Stack>
-  )
-}
-
-function Stat({ label, value, color }: { label: string; value: number; color?: string }) {
-  return (
-    <Paper p="sm">
-      <Text size="xs" c="dimmed" tt="uppercase" fw={600}>
-        {label}
-      </Text>
-      <Text fz={22} fw={650} c={color} className="tabular">
-        {value}
-      </Text>
-    </Paper>
   )
 }

@@ -5,6 +5,8 @@ import { LoginPage } from './pages/LoginPage'
 import { NotFoundPage } from './pages/NotFoundPage'
 import { CounterpartiesPage } from './pages/counterparties/CounterpartiesPage'
 import { InvoicesPage } from './pages/invoices/InvoicesPage'
+import { StatementsPage } from './pages/statements/StatementsPage'
+import { TransactionsPage } from './pages/transactions/TransactionsPage'
 
 export const router = createBrowserRouter([
   { path: '/login', element: <LoginPage /> },
@@ -18,6 +20,8 @@ export const router = createBrowserRouter([
       { index: true, element: <Navigate to="/invoices" replace /> },
       { path: 'invoices', element: <InvoicesPage /> },
       { path: 'counterparties', element: <CounterpartiesPage /> },
+      { path: 'statements', element: <StatementsPage /> },
+      { path: 'transactions', element: <TransactionsPage /> },
       { path: '*', element: <NotFoundPage /> },
     ],
   },

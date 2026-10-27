@@ -1,11 +1,21 @@
 import { AppShell, Avatar, Burger, Group, Menu, NavLink, Text, UnstyledButton } from '@mantine/core'
 import { useDisclosure } from '@mantine/hooks'
-import { IconApi, IconBuildingStore, IconChevronDown, IconFileInvoice, IconLogout } from '@tabler/icons-react'
+import {
+  IconApi,
+  IconArrowsExchange,
+  IconBuildingStore,
+  IconChevronDown,
+  IconFileInvoice,
+  IconFileUpload,
+  IconLogout,
+} from '@tabler/icons-react'
 import { NavLink as RouterNavLink, Outlet, useNavigate } from 'react-router'
 import { useCurrentUser, useLogout } from '../api/auth'
 import { Logo } from './Logo'
 
 const NAV_ITEMS = [
+  { to: '/statements', label: 'Bank statements', icon: IconFileUpload },
+  { to: '/transactions', label: 'Transactions', icon: IconArrowsExchange },
   { to: '/invoices', label: 'Invoices', icon: IconFileInvoice },
   { to: '/counterparties', label: 'Counterparties', icon: IconBuildingStore },
 ]
