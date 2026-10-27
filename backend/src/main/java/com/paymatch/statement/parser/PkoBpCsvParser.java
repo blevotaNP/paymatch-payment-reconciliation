@@ -14,6 +14,8 @@ import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 /**
  * PKO BP "Historia rachunku" CSV. The interesting data is not in fixed columns: "Opis transakcji" and
@@ -29,6 +31,8 @@ public class PkoBpCsvParser implements StatementParser {
     private static final String AMOUNT = "Kwota";
     private static final String CURRENCY = "Waluta";
     private static final String DESCRIPTION = "Opis transakcji";
+    // card payments carry the merchant only in "Lokalizacja: Adres: ORLEN STACJA 123 Miasto: WARSZAWA Kraj: POLSKA"
+    private static final Pattern CARD_MERCHANT = Pattern.compile("Adres:\\s*(.+?)\\s*(?:Miasto:|Kraj:|$)");
 
     @Override
     public BankFormat format() {
@@ -108,7 +112,13 @@ public class PkoBpCsvParser implements StatementParser {
                 case "tytuł", "tytul" -> description.title = text;
                 case "nazwa nadawcy", "nazwa odbiorcy" -> description.name = text;
                 case "rachunek nadawcy", "rachunek odbiorcy" -> description.account = text;
-                case "adres nadawcy", "adres odbiorcy", "lokalizacja", "numer telefonu",
+                case "lokalizacja" -> {
+                    Matcher merchant = CARD_MERCHANT.matcher(text == null ? "" : text);
+                    if (description.name == null && merchant.find()) {
+                        description.name = merchant.group(1);
+                    }
+                }
+                case "adres nadawcy", "adres odbiorcy", "numer telefonu",
                      "referencje własne zleceniodawcy", "oryginalna kwota operacji" -> {
                     // not needed for matching
                 }

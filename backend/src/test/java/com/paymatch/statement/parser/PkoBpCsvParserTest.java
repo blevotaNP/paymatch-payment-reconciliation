@@ -49,6 +49,15 @@ class PkoBpCsvParserTest {
     }
 
     @Test
+    void takesMerchantNameFromCardPaymentLocation() {
+        ParsedStatement statement = parser.parse(TestFiles.sample("pko_bp_historia_2026-10.csv"));
+
+        ParsedTransaction card = statement.getTransactions().getLast();
+        assertThat(card.amount()).isEqualTo(new BigDecimal("-86.97"));
+        assertThat(card.counterpartyName()).isEqualTo("ORLEN STACJA NR 123");
+    }
+
+    @Test
     void failsWhenAmountColumnIsMissing() {
         assertThatThrownBy(() -> parser.parse(TestFiles.broken("pko_missing_amount_column.csv")))
                 .isInstanceOf(StatementParseException.class)
