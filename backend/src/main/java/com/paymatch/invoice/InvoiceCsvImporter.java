@@ -1,5 +1,8 @@
 package com.paymatch.invoice;
 
+import com.paymatch.audit.AuditAction;
+import com.paymatch.audit.AuditEntityType;
+import com.paymatch.audit.AuditService;
 import com.paymatch.common.error.BadRequestException;
 import com.paymatch.common.parsing.AmountParser;
 import com.paymatch.common.parsing.CsvSupport;
@@ -45,12 +48,14 @@ public class InvoiceCsvImporter {
     private final InvoiceRepository invoiceRepository;
     private final CounterpartyService counterpartyService;
     private final MatchingService matchingService;
+    private final AuditService auditService;
 
     public InvoiceCsvImporter(InvoiceRepository invoiceRepository, CounterpartyService counterpartyService,
-                              MatchingService matchingService) {
+                              MatchingService matchingService, AuditService auditService) {
         this.invoiceRepository = invoiceRepository;
         this.counterpartyService = counterpartyService;
         this.matchingService = matchingService;
+        this.auditService = auditService;
     }
 
     @Transactional
@@ -102,6 +107,10 @@ public class InvoiceCsvImporter {
             throw new BadRequestException("Could not read CSV file: " + e.getMessage());
         }
 
+        if (imported > 0) {
+            auditService.record(AuditAction.INVOICES_IMPORTED, AuditEntityType.INVOICE, null,
+                    "Imported " + imported + " invoices from CSV (" + skipped.size() + " rows skipped)", List.of(), Map.of());
+        }
         // payments for the new invoices may already be among imported transactions
         MatchingRunResult matching = imported > 0 ? matchingService.rematchOpenTransactions() : MatchingRunResult.empty();
         return new InvoiceImportResult(total, imported, skipped, decoded.charset().name(), matching);

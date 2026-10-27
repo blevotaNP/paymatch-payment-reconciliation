@@ -3,6 +3,9 @@ package com.paymatch.statement;
 import com.paymatch.allocation.Allocation;
 import com.paymatch.allocation.AllocationRepository;
 import com.paymatch.allocation.AllocationService;
+import com.paymatch.audit.AuditAction;
+import com.paymatch.audit.AuditEntityType;
+import com.paymatch.audit.AuditService;
 import com.paymatch.common.error.BadRequestException;
 import com.paymatch.common.error.ConflictException;
 import com.paymatch.common.error.NotFoundException;
@@ -35,6 +38,7 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 @Service
@@ -53,11 +57,12 @@ public class StatementImportService {
     private final MatchingService matchingService;
     private final AllocationRepository allocationRepository;
     private final AllocationService allocationService;
+    private final AuditService auditService;
 
     public StatementImportService(StatementParserRegistry parserRegistry, StatementImportRepository importRepository,
                                   BankTransactionRepository transactionRepository, CurrentUser currentUser, Clock clock,
                                   MatchingService matchingService, AllocationRepository allocationRepository,
-                                  AllocationService allocationService) {
+                                  AllocationService allocationService, AuditService auditService) {
         this.parserRegistry = parserRegistry;
         this.importRepository = importRepository;
         this.transactionRepository = transactionRepository;
@@ -66,6 +71,7 @@ public class StatementImportService {
         this.matchingService = matchingService;
         this.allocationRepository = allocationRepository;
         this.allocationService = allocationService;
+        this.auditService = auditService;
     }
 
     /**
@@ -126,6 +132,10 @@ public class StatementImportService {
         statementImport.recordResult(parsed.getAccountIban(), periodFrom, periodTo, parsed.getTotalRows(),
                 toSave.size(), duplicateCount, parsed.getSkipped(), warnings);
 
+        auditService.record(AuditAction.IMPORT_CREATED, AuditEntityType.IMPORT, statementImport.getId(),
+                "Imported " + fileName + ": " + toSave.size() + " new, " + duplicateCount + " duplicates, "
+                        + parsed.getSkipped().size() + " skipped, " + matching.autoConfirmed() + " matched automatically",
+                List.of(), Map.of("bankFormat", parser.format().name(), "fileName", fileName));
         log.info("Imported {} ({}): {} new, {} duplicates, {} skipped", fileName, parser.format(),
                 toSave.size(), duplicateCount, parsed.getSkipped().size());
         return StatementImportResponse.from(statementImport, duplicates, matching);
@@ -164,6 +174,9 @@ public class StatementImportService {
         int deleted = transactionRepository.deleteByImportId(id);
         allocationService.recalculate(affectedInvoices);
         statementImport.markUndone(currentUser.get(), Instant.now(clock));
+        auditService.record(AuditAction.IMPORT_UNDONE, AuditEntityType.IMPORT, id,
+                "Undid import of " + statementImport.getFileName() + " (" + deleted + " transactions removed)",
+                affectedInvoices.stream().map(Invoice::getId).toList(), Map.of("fileName", statementImport.getFileName()));
         log.info("Undid import {} ({} transactions removed)", id, deleted);
         return StatementImportResponse.from(statementImport);
     }

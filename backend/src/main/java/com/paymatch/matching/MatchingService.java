@@ -2,6 +2,10 @@ package com.paymatch.matching;
 
 import com.paymatch.allocation.AllocationService;
 import com.paymatch.allocation.AllocationSource;
+import com.paymatch.audit.AuditAction;
+import com.paymatch.audit.AuditEntityType;
+import com.paymatch.audit.AuditService;
+import com.paymatch.common.Money;
 import com.paymatch.counterparty.CounterpartyRepository;
 import com.paymatch.invoice.InvoiceRepository;
 import com.paymatch.transaction.BankTransaction;
@@ -33,10 +37,12 @@ public class MatchingService {
     private final InvoiceRepository invoiceRepository;
     private final CounterpartyRepository counterpartyRepository;
     private final AllocationService allocationService;
+    private final AuditService auditService;
 
     public MatchingService(MatchingEngine engine, MatchingProperties properties, MatchSuggestionRepository suggestionRepository,
                            BankTransactionRepository transactionRepository, InvoiceRepository invoiceRepository,
-                           CounterpartyRepository counterpartyRepository, AllocationService allocationService) {
+                           CounterpartyRepository counterpartyRepository, AllocationService allocationService,
+                           AuditService auditService) {
         this.engine = engine;
         this.properties = properties;
         this.suggestionRepository = suggestionRepository;
@@ -44,11 +50,22 @@ public class MatchingService {
         this.invoiceRepository = invoiceRepository;
         this.counterpartyRepository = counterpartyRepository;
         this.allocationService = allocationService;
+        this.auditService = auditService;
     }
 
     /** Matches transactions that were just imported. */
     @Transactional
     public MatchingRunResult matchTransactions(Collection<BankTransaction> transactions) {
+        return run(transactions, properties.autoConfirmExact());
+    }
+
+    /** Fresh suggestions only; used after a person undid a match, so the engine does not redo it behind their back. */
+    @Transactional
+    public MatchingRunResult rematchWithoutAutoConfirm(Collection<BankTransaction> transactions) {
+        return run(transactions, false);
+    }
+
+    private MatchingRunResult run(Collection<BankTransaction> transactions, boolean autoConfirm) {
         List<BankTransaction> toMatch = transactions.stream()
                 .filter(BankTransaction::isIncoming)
                 .filter(tx -> tx.getMatchStatus() == MatchStatus.UNMATCHED || tx.getMatchStatus() == MatchStatus.SUGGESTED)
@@ -68,13 +85,18 @@ public class MatchingService {
             List<MatchCandidate> candidates = engine.suggest(tx, context, rejected.getOrDefault(tx.getId(), Set.of()));
             List<MatchSuggestion> saved = candidates.stream().map(candidate -> save(tx, candidate)).toList();
 
-            Optional<MatchCandidate> auto = properties.autoConfirmExact() ? engine.autoConfirmable(candidates) : Optional.empty();
+            Optional<MatchCandidate> auto = autoConfirm ? engine.autoConfirmable(candidates) : Optional.empty();
             if (auto.isPresent()) {
                 MatchCandidate candidate = auto.get();
                 List<AllocationService.Part> parts = candidate.items().stream()
                         .map(item -> new AllocationService.Part(item.invoice().getId(), item.amount()))
                         .toList();
                 allocationService.allocate(tx, parts, AllocationSource.AUTO, saved.getFirst(), null);
+                auditService.recordSystem(AuditAction.MATCH_AUTO_CONFIRMED, AuditEntityType.TRANSACTION, tx.getId(),
+                        "Payment of " + Money.format(tx.getAmount(), tx.getCurrency()) + " matched automatically to "
+                                + candidate.items().getFirst().invoice().getNumber(),
+                        candidate.items().stream().map(item -> item.invoice().getId()).toList(),
+                        Map.of("rule", candidate.rule().name(), "score", candidate.score()));
                 // later transactions in this run must see the invoice as paid
                 candidate.items().forEach(item -> item.invoice().addPaid(item.amount()));
                 autoConfirmed++;
