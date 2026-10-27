@@ -26,6 +26,12 @@ public final class Iban {
         return cleaned;
     }
 
+    /** "PL61109010140000071219812874" -> "PL61 1090 1014 0000 0712 1981 2874" */
+    public static String format(String value) {
+        String iban = normalize(value);
+        return iban == null ? null : iban.replaceAll("(.{4})(?!$)", "$1 ");
+    }
+
     public static boolean isValid(String value) {
         String iban = normalize(value);
         if (iban == null || !iban.matches("[A-Z]{2}\\d{2}[A-Z0-9]{10,30}")) {
