@@ -1,16 +1,15 @@
 package com.paymatch.statement;
 
+import com.paymatch.common.TextNormalizer;
 import com.paymatch.statement.parser.ParsedTransaction;
 
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
-import java.text.Normalizer;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HexFormat;
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
 
 /**
@@ -39,22 +38,12 @@ public final class DedupKeyGenerator {
                         + "|" + tx.bookingDate()
                         + "|" + tx.amount().toPlainString()
                         + "|" + normalizeAccount(tx.counterpartyAccount())
-                        + "|" + normalizeText(tx.title());
+                        + "|" + TextNormalizer.alphanumeric(tx.title());
                 int occurrence = occurrences.merge(fingerprint, 1, Integer::sum);
                 keys.add(sha256(fingerprint + "|" + occurrence));
             }
         }
         return keys;
-    }
-
-    /** Uppercase, no diacritics, letters and digits only: exports of the same bank are not always consistent. */
-    static String normalizeText(String value) {
-        if (value == null) {
-            return "";
-        }
-        String withoutDiacritics = Normalizer.normalize(value.replace('ł', 'l').replace('Ł', 'L'), Normalizer.Form.NFD)
-                .replaceAll("\\p{M}", "");
-        return withoutDiacritics.toUpperCase(Locale.ROOT).replaceAll("[^A-Z0-9]", "");
     }
 
     private static String normalizeAccount(String account) {

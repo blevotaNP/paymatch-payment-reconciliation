@@ -26,4 +26,20 @@ public final class Money {
     public static BigDecimal of(String amount) {
         return of(new BigDecimal(amount));
     }
+
+    /** Polish notation used in messages shown to users: "1 230,50 zł". */
+    public static String format(BigDecimal amount, String currency) {
+        String plain = amount.setScale(SCALE, RoundingMode.HALF_UP).abs().toPlainString();
+        String integer = plain.substring(0, plain.indexOf('.'));
+        String fraction = plain.substring(plain.indexOf('.') + 1);
+        StringBuilder grouped = new StringBuilder();
+        for (int i = 0; i < integer.length(); i++) {
+            if (i > 0 && (integer.length() - i) % 3 == 0) {
+                grouped.append('\u00A0');
+            }
+            grouped.append(integer.charAt(i));
+        }
+        String label = "PLN".equals(currency) ? "zł" : currency;
+        return (amount.signum() < 0 ? "-" : "") + grouped + "," + fraction + "\u00A0" + label;
+    }
 }
