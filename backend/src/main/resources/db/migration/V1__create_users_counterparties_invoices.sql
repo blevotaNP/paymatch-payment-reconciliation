@@ -25,7 +25,7 @@ CREATE TABLE invoice (
     issue_date      DATE           NOT NULL,
     due_date        DATE           NOT NULL,
     gross_amount    NUMERIC(19, 2) NOT NULL,
-    currency        CHAR(3)        NOT NULL DEFAULT 'PLN',
+    currency        VARCHAR(3)     NOT NULL DEFAULT 'PLN',
     paid_amount     NUMERIC(19, 2) NOT NULL DEFAULT 0,
     status          VARCHAR(20)    NOT NULL DEFAULT 'UNPAID',
     version         BIGINT         NOT NULL DEFAULT 0,
