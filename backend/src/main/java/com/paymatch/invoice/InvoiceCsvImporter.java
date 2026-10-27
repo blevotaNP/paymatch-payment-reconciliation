@@ -10,6 +10,8 @@ import com.paymatch.common.validation.Nip;
 import com.paymatch.counterparty.Counterparty;
 import com.paymatch.counterparty.CounterpartyService;
 import com.paymatch.invoice.InvoiceImportResult.SkippedRow;
+import com.paymatch.matching.MatchingRunResult;
+import com.paymatch.matching.MatchingService;
 import org.apache.commons.csv.CSVParser;
 import org.apache.commons.csv.CSVRecord;
 import org.springframework.stereotype.Service;
@@ -42,10 +44,13 @@ public class InvoiceCsvImporter {
 
     private final InvoiceRepository invoiceRepository;
     private final CounterpartyService counterpartyService;
+    private final MatchingService matchingService;
 
-    public InvoiceCsvImporter(InvoiceRepository invoiceRepository, CounterpartyService counterpartyService) {
+    public InvoiceCsvImporter(InvoiceRepository invoiceRepository, CounterpartyService counterpartyService,
+                              MatchingService matchingService) {
         this.invoiceRepository = invoiceRepository;
         this.counterpartyService = counterpartyService;
+        this.matchingService = matchingService;
     }
 
     @Transactional
@@ -97,7 +102,9 @@ public class InvoiceCsvImporter {
             throw new BadRequestException("Could not read CSV file: " + e.getMessage());
         }
 
-        return new InvoiceImportResult(total, imported, skipped, decoded.charset().name());
+        // payments for the new invoices may already be among imported transactions
+        MatchingRunResult matching = imported > 0 ? matchingService.rematchOpenTransactions() : MatchingRunResult.empty();
+        return new InvoiceImportResult(total, imported, skipped, decoded.charset().name(), matching);
     }
 
     private void checkHeader(Map<String, Integer> headerMap) {

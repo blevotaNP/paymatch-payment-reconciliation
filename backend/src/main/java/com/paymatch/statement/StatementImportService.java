@@ -1,15 +1,22 @@
 package com.paymatch.statement;
 
+import com.paymatch.allocation.Allocation;
+import com.paymatch.allocation.AllocationRepository;
+import com.paymatch.allocation.AllocationService;
 import com.paymatch.common.error.BadRequestException;
 import com.paymatch.common.error.ConflictException;
 import com.paymatch.common.error.NotFoundException;
 import com.paymatch.common.parsing.TextDecoder;
+import com.paymatch.invoice.Invoice;
+import com.paymatch.matching.MatchingRunResult;
+import com.paymatch.matching.MatchingService;
 import com.paymatch.statement.StatementImportResponse.DuplicateRow;
 import com.paymatch.statement.parser.ParsedStatement;
 import com.paymatch.statement.parser.ParsedTransaction;
 import com.paymatch.statement.parser.StatementParser;
 import com.paymatch.transaction.BankTransaction;
 import com.paymatch.transaction.BankTransactionRepository;
+import com.paymatch.transaction.MatchStatus;
 import com.paymatch.user.AppUser;
 import com.paymatch.user.CurrentUser;
 import org.slf4j.Logger;
@@ -43,14 +50,22 @@ public class StatementImportService {
     private final BankTransactionRepository transactionRepository;
     private final CurrentUser currentUser;
     private final Clock clock;
+    private final MatchingService matchingService;
+    private final AllocationRepository allocationRepository;
+    private final AllocationService allocationService;
 
     public StatementImportService(StatementParserRegistry parserRegistry, StatementImportRepository importRepository,
-                                  BankTransactionRepository transactionRepository, CurrentUser currentUser, Clock clock) {
+                                  BankTransactionRepository transactionRepository, CurrentUser currentUser, Clock clock,
+                                  MatchingService matchingService, AllocationRepository allocationRepository,
+                                  AllocationService allocationService) {
         this.parserRegistry = parserRegistry;
         this.importRepository = importRepository;
         this.transactionRepository = transactionRepository;
         this.currentUser = currentUser;
         this.clock = clock;
+        this.matchingService = matchingService;
+        this.allocationRepository = allocationRepository;
+        this.allocationService = allocationService;
     }
 
     /**
@@ -104,6 +119,7 @@ public class StatementImportService {
             toSave.add(toEntity(statementImport, parsed.getAccountIban(), tx, key));
         }
         transactionRepository.saveAll(toSave);
+        MatchingRunResult matching = matchingService.matchTransactions(toSave);
 
         LocalDate periodFrom = parsed.getPeriodFrom() != null ? parsed.getPeriodFrom() : minDate(transactions);
         LocalDate periodTo = parsed.getPeriodTo() != null ? parsed.getPeriodTo() : maxDate(transactions);
@@ -112,7 +128,7 @@ public class StatementImportService {
 
         log.info("Imported {} ({}): {} new, {} duplicates, {} skipped", fileName, parser.format(),
                 toSave.size(), duplicateCount, parsed.getSkipped().size());
-        return StatementImportResponse.from(statementImport, duplicates);
+        return StatementImportResponse.from(statementImport, duplicates, matching);
     }
 
     @Transactional(readOnly = true)
@@ -125,14 +141,28 @@ public class StatementImportService {
         return StatementImportResponse.from(findImport(id));
     }
 
-    /** Removes all transactions of the import. The import record itself stays, marked as undone, for history. */
+    /**
+     * Removes all transactions of the import. The import record itself stays, marked as undone, for history.
+     * Automatic matches are reverted together with the import; decisions made by a person block the undo,
+     * because silently throwing away someone's work is worse than asking them to revert it first.
+     */
     @Transactional
     public StatementImportResponse undo(Long id) {
         StatementImport statementImport = findImport(id);
         if (statementImport.getStatus() == ImportStatus.UNDONE) {
             throw new ConflictException("Import was already undone");
         }
+        if (allocationRepository.existsManualForImport(id)
+                || transactionRepository.existsByStatementImportIdAndMatchStatus(id, MatchStatus.IGNORED)) {
+            throw new ConflictException("Some transactions from this import were already reviewed by a person. "
+                    + "Undo those matches first, then undo the import.");
+        }
+        List<Invoice> affectedInvoices = allocationRepository.findByImportId(id).stream()
+                .map(Allocation::getInvoice).distinct().toList();
+        allocationRepository.deleteByImportId(id);
+        // suggestions go with their transactions (ON DELETE CASCADE)
         int deleted = transactionRepository.deleteByImportId(id);
+        allocationService.recalculate(affectedInvoices);
         statementImport.markUndone(currentUser.get(), Instant.now(clock));
         log.info("Undid import {} ({} transactions removed)", id, deleted);
         return StatementImportResponse.from(statementImport);

@@ -4,6 +4,8 @@ import com.paymatch.common.error.ConflictException;
 import com.paymatch.common.error.NotFoundException;
 import com.paymatch.counterparty.Counterparty;
 import com.paymatch.counterparty.CounterpartyService;
+import com.paymatch.matching.MatchSuggestionRepository;
+import com.paymatch.matching.MatchingService;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -11,6 +13,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Clock;
 import java.time.LocalDate;
+import java.util.List;
 
 @Service
 public class InvoiceService {
@@ -18,11 +21,16 @@ public class InvoiceService {
     private final InvoiceRepository invoiceRepository;
     private final CounterpartyService counterpartyService;
     private final Clock clock;
+    private final MatchingService matchingService;
+    private final MatchSuggestionRepository suggestionRepository;
 
-    public InvoiceService(InvoiceRepository invoiceRepository, CounterpartyService counterpartyService, Clock clock) {
+    public InvoiceService(InvoiceRepository invoiceRepository, CounterpartyService counterpartyService, Clock clock,
+                          MatchingService matchingService, MatchSuggestionRepository suggestionRepository) {
         this.invoiceRepository = invoiceRepository;
         this.counterpartyService = counterpartyService;
         this.clock = clock;
+        this.matchingService = matchingService;
+        this.suggestionRepository = suggestionRepository;
     }
 
     @Transactional(readOnly = true)
@@ -44,9 +52,11 @@ public class InvoiceService {
             throw new ConflictException("Invoice " + number + " already exists");
         }
         Counterparty counterparty = counterpartyService.get(request.counterpartyId());
-        Invoice invoice = new Invoice(number, counterparty, request.issueDate(), request.dueDate(),
-                request.grossAmount(), request.currencyOrDefault());
-        return InvoiceResponse.from(invoiceRepository.save(invoice), today());
+        Invoice invoice = invoiceRepository.saveAndFlush(new Invoice(number, counterparty, request.issueDate(),
+                request.dueDate(), request.grossAmount(), request.currencyOrDefault()));
+        // a payment for this invoice may already be waiting among imported transactions
+        matchingService.rematchOpenTransactions();
+        return InvoiceResponse.from(invoice, today());
     }
 
     @Transactional
@@ -64,6 +74,7 @@ public class InvoiceService {
                 request.grossAmount(), request.currencyOrDefault());
         // flush so the response carries the incremented version
         invoiceRepository.flush();
+        matchingService.rematchOpenTransactions();
         return InvoiceResponse.from(invoice, today());
     }
 
@@ -73,7 +84,10 @@ public class InvoiceService {
         if (invoice.getPaidAmount().signum() > 0) {
             throw new ConflictException("Invoice has matched payments; undo them before deleting");
         }
+        List<Long> affectedTransactions = suggestionRepository.findTransactionIdsWithPendingSuggestionFor(id);
         invoiceRepository.delete(invoice);
+        invoiceRepository.flush();
+        matchingService.rematch(affectedTransactions);
     }
 
     private Invoice findInvoice(Long id) {

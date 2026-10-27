@@ -2,6 +2,7 @@ package com.paymatch.invoice;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.paymatch.DatabaseCleaner;
 import com.paymatch.IntegrationTest;
 import com.paymatch.common.parsing.TextDecoder;
 import com.paymatch.counterparty.CounterpartyRepository;
@@ -40,14 +41,13 @@ class InvoiceApiIntegrationTest {
     @Autowired
     private ObjectMapper objectMapper;
     @Autowired
-    private InvoiceRepository invoiceRepository;
-    @Autowired
     private CounterpartyRepository counterpartyRepository;
+    @Autowired
+    private DatabaseCleaner databaseCleaner;
 
     @BeforeEach
     void cleanDatabase() {
-        invoiceRepository.deleteAllInBatch();
-        counterpartyRepository.deleteAllInBatch();
+        databaseCleaner.clean();
     }
 
     @Test

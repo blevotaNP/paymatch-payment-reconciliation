@@ -14,6 +14,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.time.LocalDate;
+import java.util.List;
 import java.util.function.Function;
 
 @RestController
@@ -32,10 +33,11 @@ public class TransactionController {
             @RequestParam(required = false) String search,
             @RequestParam(required = false) TransactionFilter.Direction direction,
             @RequestParam(required = false) Long importId,
+            @RequestParam(required = false) List<MatchStatus> matchStatus,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to,
             @ParameterObject @PageableDefault(size = 20, sort = {"bookingDate", "id"}, direction = Sort.Direction.DESC) Pageable pageable) {
-        TransactionFilter filter = new TransactionFilter(search, direction, importId, from, to);
+        TransactionFilter filter = new TransactionFilter(search, direction, importId, from, to, matchStatus);
         return PageResponse.of(transactionService.search(filter, pageable), Function.identity());
     }
 

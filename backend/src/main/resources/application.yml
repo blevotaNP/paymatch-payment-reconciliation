@@ -44,6 +44,8 @@ management:
         include: health
 
 app:
+  matching:
+    auto-confirm-exact: ${AUTO_CONFIRM_EXACT:true}
   demo-users:
     enabled: ${DEMO_USERS_ENABLED:true}
     password: ${DEMO_USERS_PASSWORD:demo1234}

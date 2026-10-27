@@ -19,7 +19,7 @@ import java.lang.annotation.Target;
 @Target(ElementType.TYPE)
 @Retention(RetentionPolicy.RUNTIME)
 @SpringBootTest
-@Import(IntegrationTest.PostgresConfig.class)
+@Import({IntegrationTest.PostgresConfig.class, DatabaseCleaner.class})
 public @interface IntegrationTest {
 
     @TestConfiguration(proxyBeanMethods = false)

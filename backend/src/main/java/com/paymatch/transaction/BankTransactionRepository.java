@@ -11,6 +11,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 import java.util.Collection;
+import java.util.List;
 import java.util.Set;
 
 public interface BankTransactionRepository extends JpaRepository<BankTransaction, Long>, JpaSpecificationExecutor<BankTransaction> {
@@ -21,6 +22,10 @@ public interface BankTransactionRepository extends JpaRepository<BankTransaction
 
     @Query("select t.dedupKey from BankTransaction t where t.dedupKey in :keys")
     Set<String> findExistingDedupKeys(@Param("keys") Collection<String> keys);
+
+    List<BankTransaction> findByMatchStatusIn(Collection<MatchStatus> statuses);
+
+    boolean existsByStatementImportIdAndMatchStatus(Long importId, MatchStatus status);
 
     @Modifying
     @Query("delete from BankTransaction t where t.statementImport.id = :importId")

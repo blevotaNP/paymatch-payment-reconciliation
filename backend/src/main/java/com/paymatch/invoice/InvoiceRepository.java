@@ -6,8 +6,8 @@ import org.springframework.data.jpa.domain.Specification;
 import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
+import org.springframework.data.jpa.repository.Query;
 
-import java.util.Collection;
 import java.util.List;
 
 public interface InvoiceRepository extends JpaRepository<Invoice, Long>, JpaSpecificationExecutor<Invoice> {
@@ -22,6 +22,6 @@ public interface InvoiceRepository extends JpaRepository<Invoice, Long>, JpaSpec
 
     boolean existsByCounterpartyId(Long counterpartyId);
 
-    @EntityGraph(attributePaths = "counterparty")
-    List<Invoice> findByNumberInIgnoreCase(Collection<String> numbers);
+    @Query("select i from Invoice i join fetch i.counterparty")
+    List<Invoice> findAllWithCounterparty();
 }

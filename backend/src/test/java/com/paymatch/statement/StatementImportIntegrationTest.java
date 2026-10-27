@@ -2,6 +2,7 @@ package com.paymatch.statement;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.paymatch.DatabaseCleaner;
 import com.paymatch.IntegrationTest;
 import com.paymatch.transaction.BankTransactionRepository;
 import org.junit.jupiter.api.BeforeEach;
@@ -34,12 +35,11 @@ class StatementImportIntegrationTest {
     @Autowired
     private BankTransactionRepository transactionRepository;
     @Autowired
-    private StatementImportRepository importRepository;
+    private DatabaseCleaner databaseCleaner;
 
     @BeforeEach
     void cleanDatabase() {
-        transactionRepository.deleteAllInBatch();
-        importRepository.deleteAllInBatch();
+        databaseCleaner.clean();
     }
 
     @Test

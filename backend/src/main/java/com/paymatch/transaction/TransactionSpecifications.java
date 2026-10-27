@@ -32,6 +32,9 @@ final class TransactionSpecifications {
             if (filter.importId() != null) {
                 predicates.add(cb.equal(root.get("statementImport").get("id"), filter.importId()));
             }
+            if (filter.matchStatus() != null && !filter.matchStatus().isEmpty()) {
+                predicates.add(root.get("matchStatus").in(filter.matchStatus()));
+            }
             if (filter.from() != null) {
                 predicates.add(cb.greaterThanOrEqualTo(root.get("bookingDate"), filter.from()));
             }

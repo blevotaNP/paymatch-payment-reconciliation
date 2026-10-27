@@ -1,5 +1,6 @@
 package com.paymatch.statement;
 
+import com.paymatch.matching.MatchingRunResult;
 import com.paymatch.statement.parser.SkippedRow;
 
 import java.time.Instant;
@@ -27,13 +28,15 @@ public record StatementImportResponse(
         String undoneBy,
         Instant undoneAt,
         /** Only filled in the response to the upload itself; not stored. */
-        List<DuplicateRow> duplicates) {
+        List<DuplicateRow> duplicates,
+        /** Only filled in the response to the upload itself. */
+        MatchingRunResult matching) {
 
     public static StatementImportResponse from(StatementImport statementImport) {
-        return from(statementImport, null);
+        return from(statementImport, null, null);
     }
 
-    public static StatementImportResponse from(StatementImport i, List<DuplicateRow> duplicates) {
+    public static StatementImportResponse from(StatementImport i, List<DuplicateRow> duplicates, MatchingRunResult matching) {
         return new StatementImportResponse(
                 i.getId(),
                 i.getFileName(),
@@ -54,7 +57,8 @@ public record StatementImportResponse(
                 i.getImportedAt(),
                 i.getUndoneBy() != null ? i.getUndoneBy().getDisplayName() : null,
                 i.getUndoneAt(),
-                duplicates);
+                duplicates,
+                matching);
     }
 
     public record DuplicateRow(long line, LocalDate bookingDate, String amount, String title) {
