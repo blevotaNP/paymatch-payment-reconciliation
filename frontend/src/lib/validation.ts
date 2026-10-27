@@ -39,3 +39,9 @@ export function formatNip(nip: string | null | undefined): string {
   if (!nip) return '–'
   return nip.length === 10 ? `${nip.slice(0, 3)}-${nip.slice(3, 6)}-${nip.slice(6, 8)}-${nip.slice(8)}` : nip
 }
+
+/** "PL61109010140000071219812874" -> "PL61 … 2874", for narrow table columns. */
+export function formatIbanShort(iban: string | null | undefined): string {
+  if (!iban) return '–'
+  return `${iban.slice(0, 4)} … ${iban.slice(-4)}`
+}

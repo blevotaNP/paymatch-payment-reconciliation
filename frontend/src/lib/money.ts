@@ -34,3 +34,8 @@ export function amountToInput(amount: string): string {
 export function isZero(amount: string): boolean {
   return /^-?0+(\.0+)?$/.test(amount)
 }
+
+/** For bank transactions: "+1 230,50 zł" for money in, "−45,00 zł" for money out. */
+export function formatSignedMoney(amount: string, currency = 'PLN'): string {
+  return amount.startsWith('-') ? formatMoney(amount, currency) : `+${formatMoney(amount, currency)}`
+}
