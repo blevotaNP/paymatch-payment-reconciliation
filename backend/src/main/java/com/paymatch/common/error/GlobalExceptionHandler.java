@@ -6,6 +6,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.dao.OptimisticLockingFailureException;
+import org.springframework.dao.PessimisticLockingFailureException;
 import org.springframework.data.mapping.PropertyReferenceException;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
@@ -73,6 +74,13 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
     public ProblemDetail handleOptimisticLock(OptimisticLockingFailureException ex) {
         return problem(HttpStatus.CONFLICT, "Concurrent modification",
                 "The record was changed by someone else. Reload and try again.");
+    }
+
+    @ExceptionHandler(PessimisticLockingFailureException.class)
+    public ProblemDetail handleLockFailure(PessimisticLockingFailureException ex) {
+        log.warn("Lock conflict: {}", ex.getMostSpecificCause().getMessage());
+        return problem(HttpStatus.CONFLICT, "Concurrent modification",
+                "Someone else is changing the same data right now. Try again in a moment.");
     }
 
     @ExceptionHandler(DataIntegrityViolationException.class)
