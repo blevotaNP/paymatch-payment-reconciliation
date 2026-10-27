@@ -32,6 +32,8 @@ server:
 springdoc:
   swagger-ui:
     path: /swagger-ui.html
+    csrf:
+      enabled: true
   api-docs:
     path: /v3/api-docs
 
