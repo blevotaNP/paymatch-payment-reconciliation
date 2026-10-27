@@ -1,0 +1,14 @@
+# build output
+target/
+dist/
+node_modules/
+
+# IDE
+.idea/
+*.iml
+.vscode/
+.DS_Store
+
+# local env
+.env
+*.log

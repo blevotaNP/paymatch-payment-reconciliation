@@ -1,0 +1,5 @@
+* text=auto eol=lf
+*.cmd text eol=crlf
+# sample bank files must stay byte-exact (encodings, CRLF line endings)
+samples/** -text
+backend/src/test/resources/samples/** -text

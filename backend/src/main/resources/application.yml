@@ -1,0 +1,47 @@
+spring:
+  application:
+    name: paymatch
+  datasource:
+    url: ${DB_URL:jdbc:postgresql://localhost:5433/paymatch}
+    username: ${DB_USER:paymatch}
+    password: ${DB_PASSWORD:paymatch}
+  jpa:
+    open-in-view: false
+    hibernate:
+      ddl-auto: validate
+    properties:
+      hibernate:
+        jdbc:
+          time_zone: UTC
+  flyway:
+    locations: classpath:db/migration
+  servlet:
+    multipart:
+      max-file-size: 10MB
+      max-request-size: 10MB
+  jackson:
+    default-property-inclusion: non_null
+
+server:
+  servlet:
+    session:
+      timeout: 8h
+      cookie:
+        same-site: lax
+
+springdoc:
+  swagger-ui:
+    path: /swagger-ui.html
+  api-docs:
+    path: /v3/api-docs
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health
+
+app:
+  demo-users:
+    enabled: ${DEMO_USERS_ENABLED:true}
+    password: ${DEMO_USERS_PASSWORD:demo1234}
