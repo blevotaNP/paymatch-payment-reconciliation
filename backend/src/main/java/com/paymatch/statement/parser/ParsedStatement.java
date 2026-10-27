@@ -3,6 +3,7 @@ package com.paymatch.statement.parser;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.function.UnaryOperator;
 
 /** Result of parsing one file. Parsers fill it while reading; rows that cannot be read go to {@code skipped}. */
 public class ParsedStatement {
@@ -34,6 +35,14 @@ public class ParsedStatement {
         if (to != null && (periodTo == null || to.isAfter(periodTo))) {
             periodTo = to;
         }
+    }
+
+    public void adjustDates(UnaryOperator<LocalDate> adjuster) {
+        transactions.replaceAll(tx -> new ParsedTransaction(tx.lineNumber(), adjuster.apply(tx.bookingDate()),
+                tx.valueDate() != null ? adjuster.apply(tx.valueDate()) : null, tx.amount(), tx.currency(),
+                tx.counterpartyName(), tx.counterpartyAccount(), tx.title(), tx.bankReference(), tx.rawData()));
+        periodFrom = periodFrom != null ? adjuster.apply(periodFrom) : null;
+        periodTo = periodTo != null ? adjuster.apply(periodTo) : null;
     }
 
     public String getAccountIban() {

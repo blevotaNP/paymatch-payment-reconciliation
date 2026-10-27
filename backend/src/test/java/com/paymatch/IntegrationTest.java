@@ -18,7 +18,7 @@ import java.lang.annotation.Target;
  */
 @Target(ElementType.TYPE)
 @Retention(RetentionPolicy.RUNTIME)
-@SpringBootTest
+@SpringBootTest(properties = "app.demo-data.enabled=false")
 @Import({IntegrationTest.PostgresConfig.class, DatabaseCleaner.class})
 public @interface IntegrationTest {
 

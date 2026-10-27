@@ -53,3 +53,7 @@ app:
   demo-users:
     enabled: ${DEMO_USERS_ENABLED:true}
     password: ${DEMO_USERS_PASSWORD:demo1234}
+  demo-data:
+    enabled: ${DEMO_DATA_ENABLED:true}
+    # the sample files of the repository; /app/samples inside the Docker image
+    directory: ${DEMO_DATA_DIRECTORY:../samples}

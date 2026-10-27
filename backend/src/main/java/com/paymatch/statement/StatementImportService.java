@@ -40,6 +40,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.UnaryOperator;
 
 @Service
 public class StatementImportService {
@@ -80,6 +81,16 @@ public class StatementImportService {
      */
     @Transactional
     public StatementImportResponse importFile(String fileName, byte[] content, BankFormat requestedFormat) {
+        return importFile(fileName, content, requestedFormat, null);
+    }
+
+    /**
+     * @param dateAdjuster optional change applied to every date after parsing; the demo data loader uses it to move
+     *                     the sample statements to the current month
+     */
+    @Transactional
+    public StatementImportResponse importFile(String fileName, byte[] content, BankFormat requestedFormat,
+                                              UnaryOperator<LocalDate> dateAdjuster) {
         if (content.length == 0) {
             throw new BadRequestException("File is empty");
         }
@@ -90,6 +101,9 @@ public class StatementImportService {
                         "Could not recognise the bank format. Choose the bank manually and try again."));
 
         ParsedStatement parsed = parser.parse(decoded.text());
+        if (dateAdjuster != null) {
+            parsed.adjustDates(dateAdjuster);
+        }
         if (parsed.getTransactions().isEmpty() && parsed.getSkipped().isEmpty()) {
             throw new BadRequestException("No transactions found in the file");
         }
