@@ -53,11 +53,19 @@ export interface InvoiceRequest {
   currency: string
 }
 
+export interface MatchingRunResult {
+  checked: number
+  autoConfirmed: number
+  suggested: number
+  unmatched: number
+}
+
 export interface InvoiceImportResult {
   totalRows: number
   imported: number
   skipped: { line: number; invoiceNumber: string | null; reason: string }[]
   detectedEncoding: string
+  matching: MatchingRunResult
 }
 
 export interface SortParam {
@@ -100,6 +108,56 @@ export interface StatementImport {
   undoneBy?: string
   undoneAt?: string
   duplicates?: { line: number; bookingDate: string; amount: string; title: string | null }[]
+  matching?: MatchingRunResult
+}
+
+export type MatchStatus = 'UNMATCHED' | 'SUGGESTED' | 'MATCHED' | 'IGNORED'
+export type MatchRule =
+  | 'EXACT'
+  | 'PARTIAL_PAYMENT'
+  | 'OVERPAYMENT'
+  | 'ALREADY_PAID'
+  | 'MULTIPLE_INVOICES'
+  | 'COUNTERPARTY_AMOUNT'
+  | 'COMBINED_PAYMENT'
+export type Confidence = 'HIGH' | 'MEDIUM' | 'LOW'
+
+export interface MatchReason {
+  field: 'title' | 'amount' | 'account' | 'nip' | 'name' | 'invoice'
+  message: string
+}
+
+export interface Suggestion {
+  id: number
+  rule: MatchRule
+  ruleLabel: string
+  ruleDescription: string
+  score: number
+  confidence: Confidence
+  status: 'PENDING' | 'CONFIRMED' | 'REJECTED'
+  reasons: MatchReason[]
+  items: {
+    invoiceId: number
+    invoiceNumber: string
+    counterpartyName: string
+    dueDate: string
+    grossAmount: string
+    remainingAmount: string
+    amount: string
+  }[]
+  decidedBy?: string
+  decidedAt?: string
+}
+
+export interface Allocation {
+  id: number
+  invoiceId: number
+  invoiceNumber: string
+  counterpartyName: string
+  amount: string
+  source: 'AUTO' | 'MANUAL'
+  createdBy?: string
+  createdAt: string
 }
 
 export interface Transaction {
@@ -115,10 +173,15 @@ export interface Transaction {
   counterpartyAccount: string | null
   title: string | null
   bankReference: string | null
+  matchStatus: MatchStatus
+  bestSuggestion?: { rule: MatchRule; ruleLabel: string; confidence: Confidence; score: number; invoiceNumbers: string[] }
+  matchedInvoices: string[]
 }
 
 export interface TransactionDetails {
   transaction: Transaction
   importFileName: string
   rawData: string | null
+  suggestions: Suggestion[]
+  allocations: Allocation[]
 }

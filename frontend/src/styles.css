@@ -13,3 +13,9 @@ body {
   letter-spacing: 0.03em;
   color: var(--mantine-color-gray-6);
 }
+
+/* badges are short labels; never let a flex row squeeze them into an ellipsis */
+.mantine-Badge-root {
+  flex-shrink: 0;
+  overflow: visible;
+}

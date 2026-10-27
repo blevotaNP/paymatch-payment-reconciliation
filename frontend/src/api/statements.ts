@@ -1,6 +1,16 @@
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { api, buildQuery } from './client'
-import type { BankFormat, BankFormatInfo, Page, SortParam, StatementImport, Transaction, TransactionDetails } from './types'
+import type {
+  BankFormat,
+  BankFormatInfo,
+  MatchingRunResult,
+  MatchStatus,
+  Page,
+  SortParam,
+  StatementImport,
+  Transaction,
+  TransactionDetails,
+} from './types'
 
 export function useBankFormats() {
   return useQuery({
@@ -56,6 +66,7 @@ export interface TransactionListParams {
   search?: string
   direction?: 'INCOMING' | 'OUTGOING'
   importId?: number
+  matchStatus?: MatchStatus[]
   from?: string | null
   to?: string | null
   page: number
@@ -63,15 +74,16 @@ export interface TransactionListParams {
   sort?: SortParam
 }
 
-export function useTransactions({ search, direction, importId, from, to, page, size, sort }: TransactionListParams) {
+export function useTransactions({ search, direction, importId, matchStatus, from, to, page, size, sort }: TransactionListParams) {
   return useQuery({
-    queryKey: ['transactions', { search, direction, importId, from, to, page, size, sort }],
+    queryKey: ['transactions', { search, direction, importId, matchStatus, from, to, page, size, sort }],
     queryFn: () =>
       api<Page<Transaction>>(
         `/api/transactions${buildQuery({
           search,
           direction,
           importId,
+          matchStatus,
           from,
           to,
           page,
@@ -88,5 +100,16 @@ export function useTransaction(id: number | null) {
     queryKey: ['transactions', 'details', id],
     queryFn: () => api<TransactionDetails>(`/api/transactions/${id}`),
     enabled: id != null,
+  })
+}
+
+export function useRunMatching() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: () => api<MatchingRunResult>('/api/matching/run', { method: 'POST' }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['transactions'] })
+      queryClient.invalidateQueries({ queryKey: ['invoices'] })
+    },
   })
 }
