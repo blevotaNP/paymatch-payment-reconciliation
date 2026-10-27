@@ -1,0 +1,15 @@
+body {
+  background-color: var(--mantine-color-gray-0);
+}
+
+.tabular {
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.mantine-datatable thead th {
+  font-size: var(--mantine-font-size-xs);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: var(--mantine-color-gray-6);
+}
