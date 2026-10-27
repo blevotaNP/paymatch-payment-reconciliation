@@ -1,15 +1,18 @@
-import { Alert, Button, Drawer, Group, Select, SimpleGrid, Stack, Text, TextInput } from '@mantine/core'
+import { Alert, Button, Drawer, Group, Select, SimpleGrid, Stack, Tabs, Text, TextInput } from '@mantine/core'
 import { DateInput } from '@mantine/dates'
 import { useForm } from '@mantine/form'
 import { IconInfoCircle } from '@tabler/icons-react'
 import { useEffect } from 'react'
 import { ApiError } from '../../api/client'
 import { useSaveInvoice } from '../../api/invoices'
+import { useInvoiceHistory } from '../../api/review'
 import type { Invoice } from '../../api/types'
 import { CounterpartySelect } from '../../components/CounterpartySelect'
+import { HistoryTimeline } from '../../components/HistoryTimeline'
 import { notifyError, notifySuccess } from '../../components/notify'
 import { addDaysIso, todayIso } from '../../lib/dates'
 import { amountToInput, formatMoney, isZero, normalizeAmountInput } from '../../lib/money'
+import { InvoicePayments } from './InvoicePayments'
 
 interface InvoiceFormDrawerProps {
   opened: boolean
@@ -30,6 +33,7 @@ const PAYMENT_TERMS = [7, 14, 30]
 
 export function InvoiceFormDrawer({ opened, invoice, onClose }: InvoiceFormDrawerProps) {
   const save = useSaveInvoice()
+  const history = useInvoiceHistory(opened ? invoice?.id : null)
   const form = useForm<FormValues>({
     initialValues: emptyValues(),
     validate: {
@@ -102,76 +106,97 @@ export function InvoiceFormDrawer({ opened, invoice, onClose }: InvoiceFormDrawe
 
   const hasPayments = invoice != null && !isZero(invoice.paidAmount)
 
+  const formContent = (
+    <form onSubmit={handleSubmit}>
+      <Stack>
+        {hasPayments && (
+          <Alert color="blue" icon={<IconInfoCircle size={18} />} py="xs">
+            {formatMoney(invoice.paidAmount, invoice.currency)} is already matched to this invoice. The status will
+            be recalculated if you change the amount.
+          </Alert>
+        )}
+        <TextInput label="Invoice number" placeholder="FV/10/2026" withAsterisk data-autofocus {...form.getInputProps('number')} />
+        <CounterpartySelect
+          value={form.values.counterpartyId}
+          onChange={(id) => form.setFieldValue('counterpartyId', id)}
+          selected={invoice?.counterparty}
+          error={form.errors.counterpartyId as string | undefined}
+        />
+        <SimpleGrid cols={2}>
+          <DateInput label="Issue date" valueFormat="DD.MM.YYYY" withAsterisk {...form.getInputProps('issueDate')} />
+          <DateInput label="Due date" valueFormat="DD.MM.YYYY" withAsterisk {...form.getInputProps('dueDate')} />
+        </SimpleGrid>
+        <Group gap={6} mt={-8}>
+          <Text size="xs" c="dimmed">
+            Payment term:
+          </Text>
+          {PAYMENT_TERMS.map((days) => (
+            <Button
+              key={days}
+              size="compact-xs"
+              variant="light"
+              color="gray"
+              onClick={() => form.setFieldValue('dueDate', addDaysIso(form.values.issueDate ?? todayIso(), days))}
+            >
+              {days} days
+            </Button>
+          ))}
+        </Group>
+        <SimpleGrid cols={2}>
+          <TextInput
+            label="Gross amount"
+            placeholder="1 230,50"
+            withAsterisk
+            styles={{ input: { textAlign: 'right' } }}
+            className="tabular"
+            {...form.getInputProps('grossAmount')}
+          />
+          <Select
+            label="Currency"
+            data={['PLN', 'EUR']}
+            allowDeselect={false}
+            disabled={hasPayments}
+            {...form.getInputProps('currency')}
+          />
+        </SimpleGrid>
+        <Group justify="flex-end" mt="md">
+          <Button variant="default" onClick={onClose}>
+            Cancel
+          </Button>
+          <Button type="submit" loading={save.isPending}>
+            {invoice ? 'Save changes' : 'Create invoice'}
+          </Button>
+        </Group>
+      </Stack>
+    </form>
+  )
+
   return (
     <Drawer
       opened={opened}
       onClose={onClose}
       position="right"
       size="md"
-      title={<Text fw={600}>{invoice ? `Edit invoice ${invoice.number}` : 'New invoice'}</Text>}
+      title={<Text fw={600}>{invoice ? `Invoice ${invoice.number}` : 'New invoice'}</Text>}
     >
-      <form onSubmit={handleSubmit}>
-        <Stack>
-          {hasPayments && (
-            <Alert color="blue" icon={<IconInfoCircle size={18} />} py="xs">
-              {formatMoney(invoice.paidAmount, invoice.currency)} is already matched to this invoice. The status will
-              be recalculated if you change the amount.
-            </Alert>
-          )}
-          <TextInput label="Invoice number" placeholder="FV/10/2026" withAsterisk data-autofocus {...form.getInputProps('number')} />
-          <CounterpartySelect
-            value={form.values.counterpartyId}
-            onChange={(id) => form.setFieldValue('counterpartyId', id)}
-            selected={invoice?.counterparty}
-            error={form.errors.counterpartyId as string | undefined}
-          />
-          <SimpleGrid cols={2}>
-            <DateInput label="Issue date" valueFormat="DD.MM.YYYY" withAsterisk {...form.getInputProps('issueDate')} />
-            <DateInput label="Due date" valueFormat="DD.MM.YYYY" withAsterisk {...form.getInputProps('dueDate')} />
-          </SimpleGrid>
-          <Group gap={6} mt={-8}>
-            <Text size="xs" c="dimmed">
-              Payment term:
-            </Text>
-            {PAYMENT_TERMS.map((days) => (
-              <Button
-                key={days}
-                size="compact-xs"
-                variant="light"
-                color="gray"
-                onClick={() => form.setFieldValue('dueDate', addDaysIso(form.values.issueDate ?? todayIso(), days))}
-              >
-                {days} days
-              </Button>
-            ))}
-          </Group>
-          <SimpleGrid cols={2}>
-            <TextInput
-              label="Gross amount"
-              placeholder="1 230,50"
-              withAsterisk
-              styles={{ input: { textAlign: 'right' } }}
-              className="tabular"
-              {...form.getInputProps('grossAmount')}
-            />
-            <Select
-              label="Currency"
-              data={['PLN', 'EUR']}
-              allowDeselect={false}
-              disabled={hasPayments}
-              {...form.getInputProps('currency')}
-            />
-          </SimpleGrid>
-          <Group justify="flex-end" mt="md">
-            <Button variant="default" onClick={onClose}>
-              Cancel
-            </Button>
-            <Button type="submit" loading={save.isPending}>
-              {invoice ? 'Save changes' : 'Create invoice'}
-            </Button>
-          </Group>
-        </Stack>
-      </form>
+      {invoice ? (
+        <Tabs defaultValue="details" keepMounted={false}>
+          <Tabs.List mb="md">
+            <Tabs.Tab value="details">Details</Tabs.Tab>
+            <Tabs.Tab value="payments">Payments</Tabs.Tab>
+            <Tabs.Tab value="history">History</Tabs.Tab>
+          </Tabs.List>
+          <Tabs.Panel value="details">{formContent}</Tabs.Panel>
+          <Tabs.Panel value="payments">
+            <InvoicePayments invoice={invoice} />
+          </Tabs.Panel>
+          <Tabs.Panel value="history">
+            <HistoryTimeline events={history.data} loading={history.isPending} />
+          </Tabs.Panel>
+        </Tabs>
+      ) : (
+        formContent
+      )}
     </Drawer>
   )
 }
